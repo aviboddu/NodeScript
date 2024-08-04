@@ -2,12 +2,16 @@
 
 public abstract class Node
 {
-    // Pushes an input to this node. Blocks until node is able to accept input.
-    public abstract void PushInput(string input);
+    public NodeState State { get; protected set; }
 
-    // Runs the code in this node, reading input and pushing output.
-    public abstract void Run();
+    // Pushes an input to this node. Returns a boolean indicating whether the push was successful.
+    public abstract bool PushInput(string input);
 
     // Steps through the code in this node line-by-line.
-    public abstract bool Step();
+    public abstract void Step();
+}
+
+public enum NodeState
+{
+    RUNNING, IDLE, BLOCKED
 }
