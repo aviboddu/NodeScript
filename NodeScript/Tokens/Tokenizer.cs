@@ -27,6 +27,7 @@ public class Tokenizer(string source, Node callingNode)
 
     private void ScanToken()
     {
+        SkipWhitespace();
         char c = Advance();
         if (char.IsDigit(c))
         {
@@ -108,15 +109,15 @@ public class Tokenizer(string source, Node callingNode)
     {
         return source[start] switch
         {
-            'a' => CheckKeyword("and", AND),
-            'e' => CheckKeyword("else", ELSE),
-            'f' => CheckKeyword("false", FALSE),
-            'i' => CheckKeyword("if", IF),
-            'o' => CheckKeyword("or", OR),
-            'p' => CheckKeyword("print", PRINT),
-            'r' => CheckKeyword("return", RETURN),
-            't' => CheckKeyword("true", TRUE),
-            'v' => CheckKeyword("var", VAR),
+            'A' => CheckKeyword("AND", AND),
+            'E' => source[start + 1] == 'L' ? CheckKeyword("ELSE", ELSE) : CheckKeyword("ENDIF", ENDIF),
+            'F' => CheckKeyword("FALSE", FALSE),
+            'I' => CheckKeyword("IF", IF),
+            'O' => CheckKeyword("OR", OR),
+            'P' => CheckKeyword("PRINT", PRINT),
+            'R' => CheckKeyword("RETURN", RETURN),
+            'S' => CheckKeyword("SET", SET),
+            'T' => CheckKeyword("TRUE", TRUE),
             _ => IDENTIFIER,
         };
     }

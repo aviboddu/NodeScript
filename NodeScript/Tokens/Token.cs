@@ -24,7 +24,7 @@ public enum TokenType
 
     // Keywords.
     AND, ELSE, FALSE, IF, OR, ENDIF, SET,
-    PRINT, RETURN, TRUE, VAR,
+    PRINT, RETURN, TRUE,
 
     EOF
 }

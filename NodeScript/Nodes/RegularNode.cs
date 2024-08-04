@@ -15,6 +15,7 @@ public class RegularNode : Node
     public RegularNode(string code, Node[] outputs)
     {
         this.outputs = outputs;
+        InitGlobals();
         Tokenizer tokenizer = new(code, this);
         Token[] tokens = tokenizer.ScanTokens();
     }
@@ -22,9 +23,10 @@ public class RegularNode : Node
     private void InitGlobals()
     {
         foreach (string s in globalVars)
-        {
             variables[s] = string.Empty;
-        }
+
+        foreach (string s in NativeFuncs.NativeFunctions.Keys)
+            variables[s] = NativeFuncs.NativeFunctions[s];
     }
 
     public override bool PushInput(string input)
