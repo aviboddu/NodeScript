@@ -15,7 +15,7 @@ public enum TokenType
 
     // One or two character tokens.
     BANG, BANG_EQUAL,
-    EQUAL_EQUAL,
+    EQUAL, EQUAL_EQUAL,
     GREATER, GREATER_EQUAL,
     LESS, LESS_EQUAL,
 

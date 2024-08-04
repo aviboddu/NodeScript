@@ -11,7 +11,6 @@ public class Tokenizer(string source, Node callingNode)
     private int start = 0;
     private int current = 0;
     private int line = 1;
-    private int column = 1;
 
     public Token[] ScanTokens()
     {
@@ -22,7 +21,7 @@ public class Tokenizer(string source, Node callingNode)
             ScanToken();
         }
 
-        tokens.Add(new Token(EOF, "", null, line, column));
+        tokens.Add(new Token(EOF, "", null, line));
         return [.. tokens];
     }
 
@@ -66,7 +65,7 @@ public class Tokenizer(string source, Node callingNode)
                 break;
             case '"': String(); break;
             default:
-                Err(line, column, "Unexpected character.");
+                Err(line, "Unexpected character.");
                 break;
         }
     }
@@ -78,14 +77,13 @@ public class Tokenizer(string source, Node callingNode)
             if (Peek() == '\n')
             {
                 line++;
-                column = 0;
             }
             Advance();
         }
 
         if (IsAtEnd())
         {
-            Err(line, column, "Unterminated string");
+            Err(line, "Unterminated string");
             return;
         }
 
@@ -131,16 +129,15 @@ public class Tokenizer(string source, Node callingNode)
         return IDENTIFIER;
     }
 
-    private void Err(int line, int column, string message)
+    private void Err(int line, string message)
     {
-        Script.script!.Error(callingNode, line, column, message);
+        Script.Error(callingNode, line, message);
     }
 
     private bool IsAtEnd() => current >= source.Length;
 
     private char Advance()
     {
-        column++;
         return source[current++];
     }
 
@@ -156,7 +153,6 @@ public class Tokenizer(string source, Node callingNode)
         if (IsAtEnd()) return false;
         if (source[current] != expected) return false;
         current++;
-        column++;
         return true;
     }
 
@@ -174,7 +170,6 @@ public class Tokenizer(string source, Node callingNode)
                     break;
                 case '\n':
                     line++;
-                    column = 0;
                     Advance();
                     break;
                 case '/':
@@ -193,6 +188,6 @@ public class Tokenizer(string source, Node callingNode)
     private void AddToken(TokenType type, object? obj = null)
     {
         string text = source[start..current];
-        tokens.Add(new(type, text, obj, line, column));
+        tokens.Add(new(type, text, obj, line));
     }
 }
