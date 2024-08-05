@@ -5,12 +5,12 @@ namespace NodeScript;
 
 public static class NativeFuncs
 {
-    public static FrozenDictionary<string, NativeDelegate> NativeFunctions = GetMethods();
+    public static readonly FrozenDictionary<string, NativeDelegate> NativeFunctions = GetMethods();
 
-    public delegate object NativeDelegate(object[] paramaters);
-    public static FrozenDictionary<string, NativeDelegate> GetMethods()
+    public delegate object NativeDelegate(Span<object> parameters);
+    private static FrozenDictionary<string, NativeDelegate> GetMethods()
     {
-        MethodInfo[] nativeFuncs = typeof(NativeFuncs).GetMethods(BindingFlags.Static | BindingFlags.DeclaredOnly);
+        MethodInfo[] nativeFuncs = typeof(NativeFuncs).GetMethods(BindingFlags.Static | BindingFlags.DeclaredOnly | BindingFlags.Public);
         Dictionary<string, NativeDelegate> methods = [];
         foreach (MethodInfo nativeMeth in nativeFuncs)
             methods.Add(nativeMeth.Name, nativeMeth.CreateDelegate<NativeDelegate>());
@@ -18,7 +18,7 @@ public static class NativeFuncs
         return methods.ToFrozenDictionary();
     }
 
-    public static object length(object[] objs)
+    public static object length(Span<object> objs)
     {
 
         if (objs.Length != 1) return new Err("length takes exactly one parameter");
