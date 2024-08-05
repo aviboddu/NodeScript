@@ -1,14 +1,13 @@
 namespace NodeScript;
 
-using System.Collections.Immutable;
 using static OpCode;
 
 
 public class RegularNode : Node
 {
-    private static readonly ImmutableHashSet<string> globalVars = ["input", "mem"];
+    private static readonly string[] globalVars = ["input", "mem"];
 
-    private readonly Node[] outputs;
+    public readonly Node[] outputs;
     private readonly ErrorHandler runtimeError;
 
     private readonly byte[] code;

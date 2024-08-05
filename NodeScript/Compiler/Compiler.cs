@@ -9,7 +9,7 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
     private int currentLine = 0;
     private byte[][] byteCode = new byte[operations.Length][];
 
-    public byte[][] Compile()
+    public (byte[][] code, object[] constants) Compile()
     {
         throw new NotImplementedException();
     }
