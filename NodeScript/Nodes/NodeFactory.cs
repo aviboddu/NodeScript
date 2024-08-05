@@ -20,7 +20,7 @@ public static class NodeFactory
         if (hasError) return null;
 
         // Validate
-        parser.Validate();
+        parser.Validate(operations);
         if (hasError) return null;
 
         // Compile
