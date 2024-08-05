@@ -26,6 +26,11 @@ public class RegularNode : Node
         InitGlobals();
         Tokenizer tokenizer = new(code, CompileError);
         Token[][] tokens = tokenizer.ScanTokens();
+        Parser parser = new(tokens, CompileError);
+        Operation[] operations = parser.Parse();
+        parser.Validate();
+        Compiler compiler = new(operations, CompileError);
+        byte[][] byteCode = compiler.Compile();
     }
 
     private void InitGlobals()

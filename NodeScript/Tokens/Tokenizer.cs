@@ -1,10 +1,10 @@
 namespace NodeScript;
 
 using static TokenType;
+using static CompilerUtils;
 
-public class Tokenizer(string source, Tokenizer.CompileErrorHandler compileError)
+public class Tokenizer(string source, CompileErrorHandler compileError)
 {
-    public delegate void CompileErrorHandler(int line, string message);
     private readonly CompileErrorHandler compileError = compileError;
     private readonly string source = source;
     private readonly List<List<Token>> tokens = [];
