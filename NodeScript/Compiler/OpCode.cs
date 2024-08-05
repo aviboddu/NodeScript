@@ -15,13 +15,14 @@ public enum OpCode : byte
     SUBTRACT,
     MULTIPLY,
     DIVIDE,
-    NEGATE,
-    PRINT,
-    NOT,
-    JUMP,
-    JUMP_IF_FALSE,
     AND,
     OR,
+    NEGATE,
+    NOT,
+    PRINT,
+    JUMP,
+    JUMP_IF_FALSE,
     CALL,
-    RETURN
+    RETURN,
+    LINE_END
 }
