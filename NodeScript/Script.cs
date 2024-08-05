@@ -1,8 +1,9 @@
 namespace NodeScript;
 
-public static class Script
+public class Script
 {
-    public static void Error(Node node, int line, string message) { }
-
-    public static void RuntimeError(Node node, int line, string message) { }
+    public void Error(Node node, int line, string message) { }
+    public void RuntimeError(Node node, int line, string message) { }
 }
+
+public delegate void ErrorHandler(Node node, int line, string message);

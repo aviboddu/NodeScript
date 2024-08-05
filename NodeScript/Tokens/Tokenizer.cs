@@ -2,18 +2,18 @@ namespace NodeScript;
 
 using static TokenType;
 
-public class Tokenizer(string source, Node callingNode)
+public class Tokenizer(string source, Tokenizer.CompileErrorHandler compileError)
 {
-    private readonly Node callingNode = callingNode;
+    public delegate void CompileErrorHandler(int line, string message);
+    private readonly CompileErrorHandler compileError = compileError;
     private readonly string source = source;
-    private readonly List<Token> tokens = [];
+    private readonly List<List<Token>> tokens = [];
 
-    private int start = 0;
-    private int current = 0;
-    private int line = 1;
+    private int start, current, line = 0;
 
-    public Token[] ScanTokens()
+    public Token[][] ScanTokens()
     {
+        tokens.Add([]);
         while (!IsAtEnd())
         {
             // We are at the beginning of the next lexeme.
@@ -21,8 +21,8 @@ public class Tokenizer(string source, Node callingNode)
             ScanToken();
         }
 
-        tokens.Add(new Token(EOF, "", null, line));
-        return [.. tokens];
+        AddToken(EOF);
+        return tokens.Select(Enumerable.ToArray).ToArray();
     }
 
     private void ScanToken()
@@ -46,6 +46,8 @@ public class Tokenizer(string source, Node callingNode)
             case ')': AddToken(RIGHT_PAREN); break;
             case '{': AddToken(LEFT_BRACE); break;
             case '}': AddToken(RIGHT_BRACE); break;
+            case '[': AddToken(LEFT_SQUARE); break;
+            case ']': AddToken(RIGHT_SQUARE); break;
             case ',': AddToken(COMMA); break;
             case '.': AddToken(DOT); break;
             case '-': AddToken(MINUS); break;
@@ -78,6 +80,7 @@ public class Tokenizer(string source, Node callingNode)
             if (Peek() == '\n')
             {
                 line++;
+                tokens.Add([]);
             }
             Advance();
         }
@@ -110,7 +113,7 @@ public class Tokenizer(string source, Node callingNode)
         return source[start] switch
         {
             'A' => CheckKeyword("AND", AND),
-            'E' => source[start + 1] == 'L' ? CheckKeyword("ELSE", ELSE) : CheckKeyword("ENDIF", ENDIF),
+            'E' => start + 1 < source.Length && source[start + 1] == 'L' ? CheckKeyword("ELSE", ELSE) : CheckKeyword("ENDIF", ENDIF),
             'F' => CheckKeyword("FALSE", FALSE),
             'I' => CheckKeyword("IF", IF),
             'O' => CheckKeyword("OR", OR),
@@ -130,22 +133,16 @@ public class Tokenizer(string source, Node callingNode)
         return IDENTIFIER;
     }
 
-    private void Err(int line, string message)
-    {
-        Script.Error(callingNode, line, message);
-    }
+    private void Err(int line, string message) => compileError.Invoke(line, message);
 
     private bool IsAtEnd() => current >= source.Length;
 
-    private char Advance()
-    {
-        return source[current++];
-    }
+    private char Advance() => source[current++];
 
     private char Peek() => source[current];
     private char PeekNext()
     {
-        if (current + 1 >= source.Length) return (char)0;
+        if (current + 1 >= source.Length) return '\0';
         return source[current + 1];
     }
 
@@ -171,6 +168,7 @@ public class Tokenizer(string source, Node callingNode)
                     break;
                 case '\n':
                     line++;
+                    tokens.Add([]);
                     Advance();
                     break;
                 case '/':
@@ -188,7 +186,6 @@ public class Tokenizer(string source, Node callingNode)
 
     private void AddToken(TokenType type, object? obj = null)
     {
-        string text = source[start..current];
-        tokens.Add(new(type, text, obj, line));
+        tokens[line].Add(new(type, start, current, obj, source));
     }
 }
