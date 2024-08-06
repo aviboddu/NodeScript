@@ -188,6 +188,7 @@ public class RegularNode : Node
                     break;
                 }
                 v1 = func.Invoke(parameters);
+                while (num1-- > 0) stack.Pop();
                 if (v1 is Err err)
                     Err(err.msg);
                 stack.Push(v1);
