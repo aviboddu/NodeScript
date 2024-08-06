@@ -28,8 +28,6 @@ public static class NodeFactory
         (byte[] code, object[] constants, int[] lines) = compiler.Compile();
         if (hasError) return null;
 
-
-
         RegularNode regularNode = new(code, constants, [], lines, runtimeError);
         return regularNode;
     }
