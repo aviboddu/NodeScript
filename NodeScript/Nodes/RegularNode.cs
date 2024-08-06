@@ -98,8 +98,8 @@ public class RegularNode : Node
                 stack.Push(variables[name]);
                 break;
             case SET:
+                v1 = stack.Pop();
                 name = (string)constants[Advance()];
-                v1 = variables[name];
                 variables[name] = v1;
                 break;
             case EQUAL:

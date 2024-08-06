@@ -24,5 +24,6 @@ public enum OpCode : byte
     JUMP_IF_FALSE,
     CALL,
     RETURN,
-    LINE_END
+    LINE_END,
+    NOP
 }

@@ -25,26 +25,12 @@ public static class NodeFactory
 
         // Compile
         Compiler compiler = new(operations, compileError);
-        (byte[][] code, object[] constants) = compiler.Compile();
+        (byte[] code, object[] constants, int[] lines) = compiler.Compile();
         if (hasError) return null;
 
-        // Reformat
-        int totalLength = code.Length;
-        foreach (byte[] line in code)
-            totalLength += line.Length;
-        byte[] byteCode = new byte[totalLength];
-        int[] lines = new int[totalLength];
 
-        int i = 0;
-        for (int lineNo = 0; lineNo < code.Length; lineNo++)
-        {
-            Array.Copy(code[lineNo], 0, byteCode, i, code[lineNo].Length);
-            Array.Fill(lines, lineNo, i, code[lineNo].Length + 1);
-            byteCode[i + code[lineNo].Length] = (byte)OpCode.LINE_END;
-            i += code[i].Length + 1;
-        }
 
-        RegularNode regularNode = new(byteCode, constants, [], lines, runtimeError);
+        RegularNode regularNode = new(code, constants, [], lines, runtimeError);
         return regularNode;
     }
 }
