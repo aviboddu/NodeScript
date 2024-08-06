@@ -65,6 +65,9 @@ public class RegularNode : Node
     {
         if (State == NodeState.IDLE)
         {
+            object mem = variables["mem"];
+            variables.Clear();
+            variables["mem"] = mem;
             variables["input"] = input;
             nextInstruction = 0;
             State = NodeState.RUNNING;
