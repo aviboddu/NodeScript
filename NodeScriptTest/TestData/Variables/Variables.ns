@@ -1,0 +1,2 @@
+SET x "a";
+PRINT 0 x;

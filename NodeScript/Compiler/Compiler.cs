@@ -53,7 +53,11 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
                     errorHandler.Invoke(currentLine, "Not identifier for set command");
                     return false;
                 }
-                bytes[idx] = (byte)OpCode.SET;
+                bytes.RemoveAt(idx);
+                byte id = bytes[idx];
+                bytes.RemoveAt(idx);
+                bytes.Add((byte)OpCode.SET);
+                bytes.Add(id);
                 break;
             case PRINT: bytes.Add((byte)OpCode.PRINT); lines.Add(currentLine); break;
             case RETURN: bytes.Add((byte)OpCode.RETURN); lines.Add(currentLine); break;
