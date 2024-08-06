@@ -44,8 +44,6 @@ public class Tokenizer(string source, CompileErrorHandler compileError)
         {
             case '(': AddToken(LEFT_PAREN); break;
             case ')': AddToken(RIGHT_PAREN); break;
-            case '{': AddToken(LEFT_BRACE); break;
-            case '}': AddToken(RIGHT_BRACE); break;
             case ',': AddToken(COMMA); break;
             case '.': AddToken(DOT); break;
             case '-': AddToken(MINUS); break;
@@ -56,7 +54,8 @@ public class Tokenizer(string source, CompileErrorHandler compileError)
                 AddToken(Match('=') ? BANG_EQUAL : BANG);
                 break;
             case '=':
-                AddToken(Match('=') ? EQUAL_EQUAL : EQUAL);
+                if (Match('=')) AddToken(EQUAL_EQUAL);
+                else goto default;
                 break;
             case '<':
                 AddToken(Match('=') ? LESS_EQUAL : LESS);
@@ -77,8 +76,8 @@ public class Tokenizer(string source, CompileErrorHandler compileError)
         {
             if (Peek() == '\n')
             {
-                line++;
-                tokens.Add([]);
+                Err(line, "Unterminated string");
+                return;
             }
             Advance();
         }
@@ -91,7 +90,7 @@ public class Tokenizer(string source, CompileErrorHandler compileError)
 
         // The closing quote.
         Advance();
-        AddToken(STRING, int.Parse(source[start..current]));
+        AddToken(STRING, source[(start + 1)..(current - 1)]);
     }
 
     private void Number()
