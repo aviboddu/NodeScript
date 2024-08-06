@@ -51,6 +51,7 @@ public class Tokenizer(string source, CompileErrorHandler compileError)
             case '+': AddToken(PLUS); break;
             case ';': AddToken(SEMICOLON); break;
             case '*': AddToken(STAR); break;
+            case '/': AddToken(SLASH); break;
             case '!':
                 AddToken(Match('=') ? BANG_EQUAL : BANG);
                 break;

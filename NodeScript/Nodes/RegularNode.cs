@@ -145,9 +145,9 @@ public class RegularNode : Node
             case PRINT:
                 v2 = stack.Pop();
                 v1 = stack.Pop();
-                if (ValidateType<int>(v1) && ValidateType<string>(v2))
+                if (ValidateType<int>(v1))
                 {
-                    if (!outputs[(int)v1].PushInput((string)v2))
+                    if (!outputs[(int)v1].PushInput(v2.ToString()!))
                     {
                         stack.Push(v1);
                         stack.Push(v2);
