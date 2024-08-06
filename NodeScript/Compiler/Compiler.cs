@@ -46,8 +46,8 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
                 break;
             case PRINT: bytes.Add((byte)OpCode.PRINT); break;
             case RETURN: bytes.Add((byte)OpCode.RETURN); break;
-            case IF: bytes.Add((byte)OpCode.JUMP_IF_FALSE); bytes.Add(0xff); break;
-            case ELSE: bytes.Add((byte)OpCode.JUMP); bytes.Add(0xff); break;
+            case IF: bytes.Add((byte)OpCode.JUMP_IF_FALSE); bytes.Add(0xff); bytes.Add(0xff); break;
+            case ELSE: bytes.Add((byte)OpCode.JUMP); bytes.Add(0xff); bytes.Add(0xff); break;
             case ENDIF: bytes.Add((byte)OpCode.NOP); break;
         }
         return [.. bytes];
@@ -74,6 +74,7 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
         Stack<(int idx, bool hasElse)> ifStmts = [];
         Stack<int> elseStmts = [];
         int ifIdx, elseIdx;
+        ushort diff;
         bool hasElse;
 
         for (int opNo = 0; opNo < code.Length; opNo++)
@@ -97,9 +98,11 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
                         errorHandler(lines[opNo], "Duplicate ELSE");
                         return;
                     }
-                    code[ifIdx] = (byte)(opNo + 1 - ifIdx);
+                    diff = (ushort)(opNo + 1 - ifIdx);
+                    code[ifIdx] = (byte)(diff >> 8);
+                    code[ifIdx + 1] = (byte)(diff & 0xFF);
                     ifStmts.Push((ifIdx, true));
-                    opNo++;
+                    opNo += 2;
                     break;
                 case OpCode.JUMP_IF_FALSE:
                     ifStmts.Push((opNo + 1, false));
@@ -110,11 +113,15 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
                     if (hasElse)
                     {
                         elseIdx = elseStmts.Pop();
-                        code[elseIdx] = (byte)(opNo - elseIdx);
+                        diff = (ushort)(opNo - elseIdx);
+                        code[elseIdx] = (byte)(diff >> 8);
+                        code[elseIdx + 1] = (byte)(diff & 0xFF);
                     }
                     else
                     {
-                        code[ifIdx] = (byte)(opNo - ifIdx);
+                        diff = (ushort)(opNo - ifIdx);
+                        code[ifIdx] = (byte)(diff >> 8);
+                        code[ifIdx + 1] = (byte)(diff & 0xFF);
                     }
                     break;
                 case OpCode.CALL: opNo += 2; break;

@@ -162,7 +162,7 @@ public class RegularNode : Node
                 }
                 return true;
             case JUMP:
-                nextInstruction += Advance();
+                nextInstruction += NextShort();
                 break;
             case JUMP_IF_FALSE:
                 v1 = stack.Pop();
@@ -176,7 +176,7 @@ public class RegularNode : Node
                 };
 
                 if (!b)
-                    nextInstruction += Advance();
+                    nextInstruction += NextShort();
                 break;
             case CALL:
                 name = (string)constants[Advance()];
@@ -197,11 +197,13 @@ public class RegularNode : Node
                 break;
             case LINE_END:
                 return true;
+            case NOP: break;
         }
         return false;
     }
 
     private byte Advance() => code[nextInstruction++];
+    private ushort NextShort() => (ushort)((Advance() << 8) | (Advance() & 0xff));
 
     private void BinaryArithmetic(OpCode op)
     {
