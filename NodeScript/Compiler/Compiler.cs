@@ -66,6 +66,10 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
             for (int i = 0; i < byteCode.Length + 1; i++)
                 lines.Add(lineNo);
         }
+        code.Add((byte)OpCode.RETURN);
+        lines.Add(lines[^1] + 1);
+        code.Add((byte)OpCode.LINE_END);
+        lines.Add(lines[^1]);
         return (code.ToArray(), lines.ToArray());
     }
 
