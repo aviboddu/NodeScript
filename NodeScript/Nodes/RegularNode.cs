@@ -53,12 +53,7 @@ public class RegularNode : Node
 
     private int GetLine(int instruction)
     {
-        for (int i = 0; i < lines.Length; i++)
-        {
-            if (instruction < lines[i])
-                return i;
-        }
-        return -1;
+        return ~Array.BinarySearch(lines, instruction);
     }
 
     public override bool PushInput(string input)
@@ -82,7 +77,8 @@ public class RegularNode : Node
         while (!panic && !Step()) { }
     }
 
-    protected override bool Step()
+    // Steps through the code in this node instruction-by-instruction. Returns true if we've reached the end of the line
+    protected bool Step()
     {
         string name;
         object v1, v2;

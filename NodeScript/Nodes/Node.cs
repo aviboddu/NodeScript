@@ -9,9 +9,6 @@ public abstract class Node
 
     // Steps through the code in this node line-by-line
     public abstract void StepLine();
-
-    // Steps through the code in this node instruction-by-instruction. Returns true if we've reached the end of the line
-    protected abstract bool Step();
 }
 
 public enum NodeState
