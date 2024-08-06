@@ -4,10 +4,12 @@ namespace NodeScript;
 
 public class OutputNode : Node
 {
-    private readonly StringBuilder output = new();
+    private readonly StringBuilder outputBuilder = new();
+    public string output => outputBuilder.ToString();
+
     public override bool PushInput(string input)
     {
-        output.AppendLine(input);
+        outputBuilder.AppendLine(input);
         return true;
     }
 

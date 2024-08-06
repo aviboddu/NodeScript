@@ -17,7 +17,6 @@ public class Tokenizer(string source, CompileErrorHandler compileError)
         while (!IsAtEnd())
         {
             // We are at the beginning of the next lexeme.
-            start = current;
             ScanToken();
         }
 
@@ -28,6 +27,8 @@ public class Tokenizer(string source, CompileErrorHandler compileError)
     private void ScanToken()
     {
         SkipWhitespace();
+        start = current;
+        if (IsAtEnd()) return;
         char c = Advance();
         if (char.IsDigit(c))
         {
@@ -96,7 +97,7 @@ public class Tokenizer(string source, CompileErrorHandler compileError)
     private void Number()
     {
         while (char.IsDigit(Peek())) Advance();
-        AddToken(NUMBER);
+        AddToken(NUMBER, int.Parse(source[start..current]));
     }
 
     private void Identifier()
@@ -153,7 +154,7 @@ public class Tokenizer(string source, CompileErrorHandler compileError)
 
     private void SkipWhitespace()
     {
-        for (; ; )
+        while (!IsAtEnd())
         {
             char c = Peek();
             switch (c)

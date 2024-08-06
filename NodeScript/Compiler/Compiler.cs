@@ -18,15 +18,23 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
         {
             if (!CompileLine(bytes, lines, constants))
                 return ([], [], []);
+            currentLine++;
         }
         if (!PatchJumps(bytes, lines))
             return ([], [], []);
+        bytes.Insert(bytes.Count - 1, (byte)OpCode.RETURN);
+        lines.Add(lines[^1]);
         return (bytes.ToArray(), constants.ToArray(), lines.ToArray());
     }
 
     private bool CompileLine(List<byte> bytes, List<int> lines, List<object> constants)
     {
-        Operation op = operations[currentLine];
+        Operation? op = operations[currentLine];
+        if (op is null)
+        {
+            currentLine++;
+            return true;
+        }
         if (op.expressions.Length != 0)
         {
             CompilerVisitor visitor = new(bytes, lines, constants, currentLine);

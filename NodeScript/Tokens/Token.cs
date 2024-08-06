@@ -6,7 +6,7 @@ public class Token(TokenType type, int start, int end, object? literal, string c
     private readonly int start = start;
     private readonly int end = end;
     public readonly object? literal = literal;
-    public ReadOnlySpan<char> Lexeme => code.AsSpan(start, end);
+    public ReadOnlySpan<char> Lexeme => code.AsSpan(start, end - start);
 }
 
 public enum TokenType : byte

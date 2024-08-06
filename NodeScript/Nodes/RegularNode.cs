@@ -38,7 +38,7 @@ public class RegularNode : Node
 
     private static int[] CumulativeInstructionsPerLine(int[] line)
     {
-        int[] result = new int[line[^1]];
+        int[] result = new int[line[^1] + 1];
 
         // Frequency Count
         for (int i = 0; i < line.Length; i++)
@@ -159,7 +159,7 @@ public class RegularNode : Node
                         State = NodeState.RUNNING;
                     }
                 }
-                return true;
+                return false;
             case JUMP:
                 nextInstruction += NextShort();
                 break;

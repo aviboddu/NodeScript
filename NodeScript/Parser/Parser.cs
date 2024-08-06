@@ -15,6 +15,12 @@ public class Parser(Token[][] tokens, CompileErrorHandler errorHandler)
         Operation[] operations = new Operation[tokens.Length];
         while (currentLine < operations.Length)
         {
+            currentToken = 0;
+            if (tokens[currentLine].Length == 0)
+            {
+                currentLine++;
+                continue;
+            }
             Operation? op = ParseLine();
             if (op is null) return operations;
             operations[currentLine] = op;
@@ -279,7 +285,8 @@ public class Parser(Token[][] tokens, CompileErrorHandler errorHandler)
         int ifEndif = 0;
         for (int i = 0; i < operations.Length; i++)
         {
-            Operation op = operations[i];
+            Operation? op = operations[i];
+            if (op is null) continue;
             Validator v = new(errorHandler, i);
             switch (op.operation)
             {

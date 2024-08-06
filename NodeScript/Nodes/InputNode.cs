@@ -1,10 +1,17 @@
 namespace NodeScript;
 
-public class InputNode(string input, Node output) : Node
+public class InputNode : Node
 {
-    private readonly StringReader input = new(input);
-    private readonly Node output = output;
+    private readonly StringReader input;
+    private readonly Node output;
     private string? currentLine = null;
+
+    public InputNode(string input, Node output)
+    {
+        this.input = new(input);
+        this.output = output;
+        State = NodeState.RUNNING;
+    }
 
     public override bool PushInput(string input)
     {
@@ -13,7 +20,12 @@ public class InputNode(string input, Node output) : Node
 
     public override void StepLine()
     {
-        if (input.Peek() == -1) return;
+        if (State != NodeState.RUNNING) return;
+        if (input.Peek() == -1 && currentLine is null)
+        {
+            State = NodeState.IDLE;
+            return;
+        }
         currentLine ??= input.ReadLine();
         if (output.PushInput(currentLine!))
             currentLine = null;
