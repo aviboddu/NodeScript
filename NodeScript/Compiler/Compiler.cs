@@ -8,30 +8,33 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
     private readonly Operation[] operations = operations;
     private CompileErrorHandler errorHandler = errorHandler;
     private int currentLine = 0;
-    private byte[][] byteCode = new byte[operations.Length][];
 
     public (byte[] code, object[] constants, int[] lines) Compile()
     {
         List<object> constants = [];
+        List<byte> bytes = [];
+        List<int> lines = [];
         while (currentLine < operations.Length)
         {
-            byteCode[currentLine] = CompileLine(constants);
+            if (!CompileLine(bytes, lines, constants))
+                return ([], [], []);
         }
-        (byte[] flattenedCode, int[] lines) = FlattenCode();
-        PatchJumps(flattenedCode, lines);
-        return (flattenedCode, constants.ToArray(), lines);
+        if (!PatchJumps(bytes, lines))
+            return ([], [], []);
+        return (bytes.ToArray(), constants.ToArray(), lines.ToArray());
     }
 
-    private byte[] CompileLine(List<object> constants)
+    private bool CompileLine(List<byte> bytes, List<int> lines, List<object> constants)
     {
         Operation op = operations[currentLine];
-        List<byte> bytes = [];
         if (op.expressions.Length != 0)
         {
-            CompilerVisitor visitor = new(constants);
+            CompilerVisitor visitor = new(bytes, lines, constants, currentLine);
             foreach (Expr expr in op.expressions)
-                expr.Accept(visitor);
-            bytes = visitor.bytes;
+            {
+                if (!expr.Accept(visitor))
+                    return false;
+            }
         }
         switch (op.operation)
         {
@@ -40,40 +43,28 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
                 if (idx == -1)
                 {
                     errorHandler.Invoke(currentLine, "Not identifier for set command");
-                    return [];
+                    return false;
                 }
                 bytes[idx] = (byte)OpCode.SET;
                 break;
-            case PRINT: bytes.Add((byte)OpCode.PRINT); break;
-            case RETURN: bytes.Add((byte)OpCode.RETURN); break;
-            case IF: bytes.Add((byte)OpCode.JUMP_IF_FALSE); bytes.Add(0xff); bytes.Add(0xff); break;
-            case ELSE: bytes.Add((byte)OpCode.JUMP); bytes.Add(0xff); bytes.Add(0xff); break;
-            case ENDIF: bytes.Add((byte)OpCode.NOP); break;
+            case PRINT: bytes.Add((byte)OpCode.PRINT); lines.Add(currentLine); break;
+            case RETURN: bytes.Add((byte)OpCode.RETURN); lines.Add(currentLine); break;
+            case IF:
+                bytes.Add((byte)OpCode.JUMP_IF_FALSE); bytes.Add(0xff); bytes.Add(0xff);
+                lines.Add(currentLine); lines.Add(currentLine); lines.Add(currentLine);
+                break;
+            case ELSE:
+                bytes.Add((byte)OpCode.JUMP); bytes.Add(0xff); bytes.Add(0xff);
+                lines.Add(currentLine); lines.Add(currentLine); lines.Add(currentLine);
+                break;
+            case ENDIF: bytes.Add((byte)OpCode.NOP); lines.Add(currentLine); break;
         }
-        return [.. bytes];
+        bytes.Add((byte)OpCode.LINE_END);
+        lines.Add(currentLine);
+        return true;
     }
 
-    private (byte[] code, int[] lines) FlattenCode()
-    {
-        List<byte> code = [];
-        List<int> lines = [];
-
-        for (int lineNo = 0; lineNo < byteCode.Length; lineNo++)
-        {
-            if (byteCode.Length == 0) continue;
-            code.AddRange(byteCode[lineNo]);
-            code.Add((byte)OpCode.LINE_END);
-            for (int i = 0; i < byteCode.Length + 1; i++)
-                lines.Add(lineNo);
-        }
-        code.Add((byte)OpCode.RETURN);
-        lines.Add(lines[^1] + 1);
-        code.Add((byte)OpCode.LINE_END);
-        lines.Add(lines[^1]);
-        return (code.ToArray(), lines.ToArray());
-    }
-
-    private void PatchJumps(byte[] code, int[] lines)
+    private bool PatchJumps(List<byte> code, List<int> lines)
     {
         Stack<(int idx, bool hasElse)> ifStmts = [];
         Stack<int> elseStmts = [];
@@ -81,7 +72,7 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
         ushort diff;
         bool hasElse;
 
-        for (int opNo = 0; opNo < code.Length; opNo++)
+        for (int opNo = 0; opNo < code.Count; opNo++)
         {
             OpCode opCode = (OpCode)code[opNo];
             switch (opCode)
@@ -94,13 +85,13 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
                     if (ifStmts.Count == 0)
                     {
                         errorHandler(lines[opNo], "ELSE without corresponding IF");
-                        return;
+                        return false;
                     }
                     (ifIdx, hasElse) = ifStmts.Pop();
                     if (hasElse)
                     {
                         errorHandler(lines[opNo], "Duplicate ELSE");
-                        return;
+                        return false;
                     }
                     diff = (ushort)(opNo + 1 - ifIdx);
                     code[ifIdx] = (byte)(diff >> 8);
@@ -131,12 +122,15 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
                 case OpCode.CALL: opNo += 2; break;
             }
         }
+        return true;
     }
 
-    private class CompilerVisitor(List<object> constants) : Expr.IVisitor<bool>
+    private class CompilerVisitor(List<byte> bytes, List<int> lines, List<object> constants, int currentLine) : Expr.IVisitor<bool>
     {
-        public List<byte> bytes = [];
+        private List<byte> bytes = bytes;
+        private List<int> lines = lines;
         private readonly List<object> constants = constants;
+        private readonly int currentLine = currentLine;
 
         public bool VisitBinaryExpr(Binary expr)
         {
@@ -212,13 +206,20 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
             return (byte)idx;
         }
 
-        private void Emit(OpCode opCode) => bytes.Add((byte)opCode);
+        private void Emit(OpCode opCode)
+        {
+            bytes.Add((byte)opCode);
+            lines.Add(currentLine);
+        }
 
         private void Emit(OpCode opCode, params byte[] data)
         {
             Emit(opCode);
             foreach (byte b in data)
+            {
                 bytes.Add(b);
+                lines.Add(currentLine);
+            }
         }
     }
 }
