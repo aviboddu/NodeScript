@@ -180,7 +180,7 @@ public class RegularNode : Node
             case CALL:
                 name = (string)constants[Advance()];
                 num1 = Advance();
-                parameters = stack.GetInternalArray().AsSpan()[^num1..];
+                parameters = stack.GetInternalArray().AsSpan()[(stack.Count - num1)..stack.Count];
                 if (!NativeFuncs.NativeFunctions.TryGetValue(name, out NativeFuncs.NativeDelegate? func))
                 {
                     Err($"Function {name} does not exist");

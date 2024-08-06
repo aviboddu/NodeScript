@@ -169,6 +169,7 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
 
         public bool VisitCallExpr(Call expr)
         {
+            if (!expr.Arguments.All((e) => e.Accept(this))) return false;
             Emit(OpCode.CALL, MakeConst(expr.Callee.Name.Lexeme.ToString()), (byte)expr.Arguments.Count);
             return true;
         }
