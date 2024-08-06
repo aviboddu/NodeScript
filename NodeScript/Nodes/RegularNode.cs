@@ -173,9 +173,9 @@ public class RegularNode : Node
                     string[] a => a.Length != 0,
                     _ => false,
                 };
-
+                ushort jump_val = NextShort();
                 if (!b)
-                    nextInstruction += NextShort();
+                    nextInstruction += jump_val;
                 break;
             case CALL:
                 name = (string)constants[Advance()];

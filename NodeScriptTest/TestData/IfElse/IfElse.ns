@@ -1,0 +1,7 @@
+SET x length(input);
+IF x > 1;
+SET s "g";
+ELSE;
+SET s "l";
+ENDIF;
+PRINT 0 s;

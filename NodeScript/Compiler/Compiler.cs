@@ -35,6 +35,7 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
             currentLine++;
             return true;
         }
+        int startIdx = bytes.Count;
         if (op.expressions.Length != 0)
         {
             CompilerVisitor visitor = new(bytes, lines, constants, currentLine);
@@ -47,10 +48,25 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
         switch (op.operation)
         {
             case SET:
-                int idx = bytes.FindLastIndex((b) => b == (byte)OpCode.GET);
+                int idx = -1;
+                for (; startIdx < bytes.Count; startIdx++)
+                {
+                    OpCode oper = (OpCode)bytes[startIdx];
+                    switch (oper)
+                    {
+                        case OpCode.GET: idx = startIdx; startIdx = bytes.Count; break;
+                        case OpCode.CONSTANT:
+                        case OpCode.SET: startIdx++; break;
+                        case OpCode.JUMP:
+                        case OpCode.CALL: startIdx += 2; break;
+                        case OpCode.JUMP_IF_FALSE:
+                            startIdx++;
+                            break;
+                    }
+                }
                 if (idx == -1)
                 {
-                    errorHandler.Invoke(currentLine, "Not identifier for set command");
+                    errorHandler.Invoke(currentLine, "No identifier for set command");
                     return false;
                 }
                 bytes.RemoveAt(idx);
