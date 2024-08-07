@@ -7,6 +7,7 @@ public abstract record Expr
     {
         public R VisitBinaryExpr(Binary expr);
         public R VisitCallExpr(Call expr);
+        public R VisitIndexExpr(Index expr);
         public R VisitGroupingExpr(Grouping expr);
         public R VisitLiteralExpr(Literal expr);
         public R VisitUnaryExpr(Unary expr);
@@ -18,6 +19,11 @@ public abstract record Expr
 public record Binary(Expr Left, Token Op, Expr Right) : Expr
 {
     public override R Accept<R>(IVisitor<R> visitor) => visitor.VisitBinaryExpr(this);
+}
+
+public record Index(Variable Variable, Expr[] Arguments) : Expr
+{
+    public override R Accept<R>(IVisitor<R> visitor) => visitor.VisitIndexExpr(this);
 }
 
 public record Call(Variable Callee, Token Paren, List<Expr> Arguments) : Expr

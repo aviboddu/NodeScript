@@ -183,6 +183,23 @@ public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
             return true;
         }
 
+        public bool VisitIndexExpr(Index expr)
+        {
+            if (!expr.Variable.Accept(this)) return false;
+            if (!expr.Arguments.All((a) => a.Accept(this))) return false;
+            switch (expr.Arguments.Length)
+            {
+                case 1:
+                    Emit(OpCode.CALL, MakeConst("element_at"), 2);
+                    break;
+                case 2:
+                    Emit(OpCode.CALL, MakeConst("slice"), 3);
+                    break;
+                default: return false;
+            }
+            return true;
+        }
+
         public bool VisitCallExpr(Call expr)
         {
             if (!expr.Arguments.All((e) => e.Accept(this))) return false;

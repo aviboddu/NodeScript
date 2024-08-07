@@ -7,8 +7,7 @@ NodeScript is a rudimentary programming language designed to function on 'nodes'
 - [ ] More native functions
 - [ ] Node connection functionality
 - [ ] Improved error handling (specifically exception handling)
-- [ ] Methods
-- [ ] Indexing
+- [x] Indexing
 
 ## Nodes
 - Input nodes will continuously attempt to send the next line. It has only one output.
@@ -19,6 +18,9 @@ NodeScript is a rudimentary programming language designed to function on 'nodes'
 ## Features
 - Basic arithmetic and boolean logic
 - Variables - All variables are global in scope
+- Indexing
+    - Element_of: `v[i]`
+    - Slice: `v[i:j]`
 - Basic control flow (if-else)
 - Native functions for things like:
     - String manipulation

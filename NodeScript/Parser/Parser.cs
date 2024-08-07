@@ -196,6 +196,25 @@ public class Parser(Token[][] tokens, CompileErrorHandler errorHandler)
                 expr = FinishCall(v);
                 if (expr is null) return null;
             }
+            else if (Match(LEFT_SQUARE))
+            {
+                if (expr is not Variable v)
+                {
+                    errorHandler.Invoke(currentLine, "Cannot index something that is not an identifier");
+                    return null;
+                }
+                Expr? arg = Expression();
+                if (arg is null) return null;
+                List<Expr> args = [arg];
+                if (Match(COLON))
+                {
+                    arg = Expression();
+                    if (arg is null) return null;
+                    args.Add(arg);
+                }
+                Consume(RIGHT_SQUARE, "Expect ] after expression");
+                expr = new Index(v, [.. args]);
+            }
             else
                 break;
         }
@@ -307,6 +326,8 @@ public class Parser(Token[][] tokens, CompileErrorHandler errorHandler)
         private readonly CompileErrorHandler errorHandler = errorHandler;
 
         public bool VisitBinaryExpr(Binary expr) => expr.Left.Accept(this) & expr.Right.Accept(this);
+
+        public bool VisitIndexExpr(Index expr) => expr.Arguments.All((a) => a.Accept(this));
 
         public bool VisitCallExpr(Call expr)
         {

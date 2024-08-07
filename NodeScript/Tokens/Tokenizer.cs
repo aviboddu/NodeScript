@@ -45,6 +45,8 @@ public class Tokenizer(string source, CompileErrorHandler compileError)
         {
             case '(': AddToken(LEFT_PAREN); break;
             case ')': AddToken(RIGHT_PAREN); break;
+            case '[': AddToken(LEFT_SQUARE); break;
+            case ']': AddToken(RIGHT_SQUARE); break;
             case ',': AddToken(COMMA); break;
             case '.': AddToken(DOT); break;
             case '-': AddToken(MINUS); break;
@@ -52,6 +54,7 @@ public class Tokenizer(string source, CompileErrorHandler compileError)
             case ';': AddToken(SEMICOLON); break;
             case '*': AddToken(STAR); break;
             case '/': AddToken(SLASH); break;
+            case ':': AddToken(COLON); break;
             case '!':
                 AddToken(Match('=') ? BANG_EQUAL : BANG);
                 break;
