@@ -1,7 +1,7 @@
-SET x length(input);
+SET x, length(input);
 IF x > 1;
-SET s "g";
+SET s, "g";
 ELSE;
-SET s "l";
+SET s, "l";
 ENDIF;
-PRINT 0 s;
+PRINT 0, s;

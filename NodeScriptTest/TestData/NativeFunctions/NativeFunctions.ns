@@ -1,1 +1,1 @@
-PRINT 0 length(input);
+PRINT 0, length(input);

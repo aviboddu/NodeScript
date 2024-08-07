@@ -3,9 +3,9 @@ namespace NodeScript;
 using static TokenType;
 using static CompilerUtils;
 
-public class Compiler(Operation[] operations, CompileErrorHandler errorHandler)
+public class Compiler(Operation?[] operations, CompileErrorHandler errorHandler)
 {
-    private readonly Operation[] operations = operations;
+    private readonly Operation?[] operations = operations;
     private CompileErrorHandler errorHandler = errorHandler;
     private int currentLine = 0;
 

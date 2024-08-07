@@ -2,6 +2,7 @@ namespace NodeScript;
 
 using static TokenType;
 using static CompilerUtils;
+using System.Runtime.CompilerServices;
 
 public class Parser(Token[][] tokens, CompileErrorHandler errorHandler)
 {
@@ -10,9 +11,9 @@ public class Parser(Token[][] tokens, CompileErrorHandler errorHandler)
     private int currentLine = 0;
     private int currentToken = 0;
 
-    public Operation[] Parse()
+    public Operation?[] Parse()
     {
-        Operation[] operations = new Operation[tokens.Length];
+        Operation?[] operations = new Operation[tokens.Length];
         while (currentLine < operations.Length)
         {
             currentToken = 0;
@@ -52,6 +53,10 @@ public class Parser(Token[][] tokens, CompileErrorHandler errorHandler)
             if (expr is null) return null;
 
             op.expressions[i] = expr;
+            if (i != op.expressions.Length - 1)
+            {
+                Consume(COMMA, "Expect comma between expressions");
+            }
         }
 
         if (Consume(SEMICOLON, "Expected semicolon") is null)
@@ -299,7 +304,137 @@ public class Parser(Token[][] tokens, CompileErrorHandler errorHandler)
     private Token Peek() => tokens[currentLine][currentToken];
     private Token Previous() => tokens[currentLine][currentToken - 1];
 
-    public void Validate(Operation[] operations)
+    public void Optimize(Operation?[] operations)
+    {
+        for (currentLine = 0; currentLine < operations.Length; currentLine++)
+        {
+            Operation? op = operations[currentLine];
+            if (op is null) continue;
+            Optimizer optimizer = new(errorHandler, currentLine);
+            for (int i = 0; i < op.expressions.Length; i++)
+                op.expressions[i] = op.expressions[i].Accept(optimizer);
+        }
+    }
+
+    private class Optimizer(CompileErrorHandler errorHandler, int lineNo) : Expr.IVisitor<Expr>
+    {
+        private readonly CompileErrorHandler errorHandler = errorHandler;
+
+        public Expr VisitBinaryExpr(Binary expr)
+        {
+            Expr left = expr.Left.Accept(this);
+            Expr right = expr.Right.Accept(this);
+            if (left is not Literal l || right is not Literal r)
+                return expr;
+            switch (expr.Op.type)
+            {
+                case GREATER:
+                case LESS:
+                case MINUS:
+                case STAR:
+                case SLASH:
+                case GREATER_EQUAL:
+                case LESS_EQUAL:
+                    if (l.Value is not int || r.Value is not int)
+                    {
+                        errorHandler(lineNo, "Illegal binary expression");
+                        return expr;
+                    }
+                    break;
+                case AND:
+                case OR:
+                    if (l.Value is not bool || r.Value is not bool)
+                    {
+                        errorHandler(lineNo, "Illegal binary expression");
+                        return expr;
+                    }
+                    break;
+            }
+            switch (expr.Op.type)
+            {
+                case GREATER: return new Literal((int)l.Value > (int)r.Value);
+                case LESS: return new Literal((int)l.Value < (int)r.Value);
+                case MINUS: return new Literal((int)l.Value - (int)r.Value);
+                case STAR: return new Literal((int)l.Value * (int)r.Value);
+                case SLASH: return new Literal((int)l.Value / (int)r.Value);
+                case GREATER_EQUAL: return new Literal((int)l.Value >= (int)r.Value);
+                case LESS_EQUAL: return new Literal((int)l.Value <= (int)r.Value);
+                case AND: return new Literal((bool)l.Value & (bool)r.Value);
+                case OR: return new Literal((bool)l.Value | (bool)r.Value);
+                case PLUS:
+                    if (l.Value is string sl && r.Value is string sr)
+                        return new Literal(sl + sr);
+                    if (l.Value is int il && r.Value is int ir)
+                        return new Literal(ir + il);
+                    errorHandler(lineNo, "Illegal binary expression");
+                    return expr;
+                default:
+                    errorHandler(lineNo, "Unexpected binary operator");
+                    return expr;
+            }
+        }
+
+        public Expr VisitIndexExpr(Index expr) => expr;
+
+        public Expr VisitCallExpr(Call expr)
+        {
+            for (int i = 0; i < expr.Arguments.Count; i++)
+                expr.Arguments[i] = expr.Arguments[i].Accept(this);
+            if (!expr.Arguments.All((a) => a is Literal))
+                return expr;
+
+            string name = expr.Callee.Name.Lexeme.ToString();
+            NativeFuncs.NativeDelegate func = NativeFuncs.NativeFunctions[name];
+            object val = func.Invoke(expr.Arguments.Select((expr) => ((Literal)expr).Value).ToArray().AsSpan());
+            if (val is Err e)
+            {
+                errorHandler.Invoke(lineNo, e.msg);
+                return expr;
+            }
+            return new Literal(val);
+        }
+
+        public Expr VisitGroupingExpr(Grouping expr)
+        {
+            Expr ex = expr.Expression.Accept(this);
+            if (ex is not Literal l)
+                return expr;
+            return ex;
+        }
+
+        public Expr VisitLiteralExpr(Literal expr) => expr;
+
+        public Expr VisitUnaryExpr(Unary expr)
+        {
+            Expr ex = expr.Right.Accept(this);
+            if (ex is not Literal l)
+                return expr;
+            switch (expr.Op.type)
+            {
+                case MINUS:
+                    if (l.Value is not int i)
+                    {
+                        errorHandler(lineNo, "Can only negate a number");
+                        return expr;
+                    }
+                    return new Literal(-i);
+                case BANG:
+                    if (l.Value is not bool b)
+                    {
+                        errorHandler(lineNo, "Can only NOT a bool");
+                        return expr;
+                    }
+                    return new Literal(!b);
+                default:
+                    errorHandler(lineNo, "Unexpected operator");
+                    return expr;
+            }
+        }
+
+        public Expr VisitVariableExpr(Variable expr) => expr;
+    }
+
+    public void Validate(Operation?[] operations)
     {
         int ifEndif = 0;
         for (int i = 0; i < operations.Length; i++)

@@ -37,8 +37,8 @@ Execution will occur line by line and will only start when a node receives an in
 
 ## Syntax
 Every line contains a single statement. All statements will start with a relevant keyword for the operation and end with a semicolon.
-- SET: Sets a variable to a certain value. Variables do not need to be declared. Syntax: `SET <variable_name> <expression>;`
-- PRINT: Sends a string to a specific output node, denoted by an index. Syntax: `PRINT <output_idx> <expression>;`
+- SET: Sets a variable to a certain value. Variables do not need to be declared. Syntax: `SET <variable_name>, <expression>;`
+- PRINT: Sends a string to a specific output node, denoted by an index. Syntax: `PRINT <output_idx>, <expression>;`
 - RETURN: Ends the program (until the next input comes). Syntax: `RETURN;`
 - IF: Executes the following code if the given expression is true. Syntax `IF <expression>;`
 - ELSE: Executes the following code if the previous if statement was false. Syntax `ELSE;`

@@ -16,11 +16,15 @@ public static class NodeFactory
 
         // Parse
         Parser parser = new(tokens, compileError);
-        Operation[] operations = parser.Parse();
+        Operation?[] operations = parser.Parse();
         if (hasError) return null;
 
         // Validate
         parser.Validate(operations);
+        if (hasError) return null;
+
+        // Optimize
+        parser.Optimize(operations);
         if (hasError) return null;
 
         // Compile

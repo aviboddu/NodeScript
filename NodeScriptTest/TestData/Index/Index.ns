@@ -1,1 +1,1 @@
-PRINT 0 input[0];
+PRINT 0, input[0];
