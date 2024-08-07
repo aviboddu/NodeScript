@@ -4,7 +4,7 @@ NodeScript is a rudimentary programming language designed to function on 'nodes'
 ## TODO
 - [x] Unit Tests
 - [x] Input, combiner and output Nodes
-- [ ] More native functions
+- [x] More native functions
 - [ ] Node connection functionality
 - [ ] Improved error handling (specifically exception handling)
 - [x] Indexing

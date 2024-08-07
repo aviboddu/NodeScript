@@ -94,6 +94,39 @@ public static class NativeFuncs
             return s[idx].ToString();
         return ((string[])objs[0])[idx];
     }
+
+    public static object to_string(Span<object> objs)
+    {
+        if (objs.Length != 1) return new Err("to_string takes one parameter");
+        return objs[0].ToString()!;
+    }
+
+    public static object parse_int(Span<object> objs)
+    {
+        if (objs.Length != 1) return new Err("parse_int takes one parameter");
+        if (objs[0] is not string s) return new Err("parse_int takes in a single string");
+        if (!int.TryParse(s, out int i))
+            return new Err("Failed to parse int");
+        return i;
+    }
+
+    public static object can_parse(Span<object> objs)
+    {
+        if (objs.Length != 1) return new Err("can_parse takes one parameter");
+        if (objs[0] is not string s) return false;
+        return int.TryParse(s, out _);
+    }
+
+    public static object remove_at(Span<object> objs)
+    {
+        if (objs.Length != 2) return new Err("remove_at takes two parameters");
+        if (objs[0] is not string[] a || objs[1] is not int i)
+            return new Err("remove_at takes in a string array and an int");
+        if (a.Length <= i) return new Err($"array does not have index {i}");
+        List<string> list = new(a);
+        list.RemoveAt(i);
+        return list.ToArray();
+    }
 }
 
 public class Err(string msg)
