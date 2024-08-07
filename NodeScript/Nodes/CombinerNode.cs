@@ -1,5 +1,8 @@
+using System.Diagnostics;
+
 namespace NodeScript;
 
+[DebuggerDisplay("input = {input, nq}")]
 public class CombinerNode(Node output) : Node
 {
     private readonly Node output = output;

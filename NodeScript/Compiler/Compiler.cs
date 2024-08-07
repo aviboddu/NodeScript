@@ -1,8 +1,11 @@
 namespace NodeScript;
 
+using System.Diagnostics;
+
 using static TokenType;
 using static CompilerUtils;
 
+[DebuggerDisplay("currentLine = {currentLine, nq}")]
 public class Compiler(Operation?[] operations, CompileErrorHandler errorHandler)
 {
     private readonly Operation?[] operations = operations;

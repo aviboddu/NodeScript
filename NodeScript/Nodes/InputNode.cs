@@ -1,5 +1,8 @@
+using System.Diagnostics;
+
 namespace NodeScript;
 
+[DebuggerDisplay("stringReader = {input}")]
 public class InputNode : Node
 {
     private readonly StringReader input;

@@ -2,7 +2,10 @@ namespace NodeScript;
 
 using static TokenType;
 using static CompilerUtils;
+using System.Diagnostics;
 
+
+[DebuggerDisplay("start = {start, nq}, current = {current, nq}, line = {line, nq}")]
 public class Tokenizer(string source, CompileErrorHandler compileError)
 {
     private readonly CompileErrorHandler compileError = compileError;

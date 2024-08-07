@@ -1,8 +1,9 @@
 namespace NodeScript;
 
+using System.Diagnostics;
 using static OpCode;
 
-
+[DebuggerDisplay("nextInstruction = {nextInstruction, nq}, stack = {stack, nq}")]
 public class RegularNode : Node
 {
     private static readonly string[] globalVars = ["input", "mem"];

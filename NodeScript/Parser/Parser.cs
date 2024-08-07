@@ -2,8 +2,9 @@ namespace NodeScript;
 
 using static TokenType;
 using static CompilerUtils;
-using System.Runtime.CompilerServices;
+using System.Diagnostics;
 
+[DebuggerDisplay("currentLine = {currentLine, nq}, currentToken = {currentToken, nq}")]
 public class Parser(Token[][] tokens, CompileErrorHandler errorHandler)
 {
     private readonly CompileErrorHandler errorHandler = errorHandler;

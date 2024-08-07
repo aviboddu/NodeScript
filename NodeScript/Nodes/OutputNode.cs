@@ -1,7 +1,9 @@
+using System.Diagnostics;
 using System.Text;
 
 namespace NodeScript;
 
+[DebuggerDisplay("output={output}")]
 public class OutputNode : Node
 {
     private readonly StringBuilder outputBuilder = new();
