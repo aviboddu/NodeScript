@@ -1,14 +1,6 @@
 # NodeScript
 NodeScript is a rudimentary programming language designed to function on 'nodes', intended for use in puzzle games. Find development details [here](./Development.md)
 
-## TODO
-- [x] Unit Tests
-- [x] Input, combiner and output Nodes
-- [x] More native functions
-- [ ] Node connection functionality
-- [ ] Improved error handling (specifically exception handling)
-- [x] Indexing
-
 ## Nodes
 - Input nodes will continuously attempt to send the next line. It has only one output.
 - Regular nodes can take in one string at a time, process it and send it to a set number of outputs. Each node can store a single object in `mem` and has limited space for code.
