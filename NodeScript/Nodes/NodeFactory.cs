@@ -20,11 +20,11 @@ public static class NodeFactory
         if (hasError) return null;
 
         // Validate
-        parser.Validate(operations);
+        Validator.Validate(operations, compileError);
         if (hasError) return null;
 
         // Optimize
-        parser.Optimize(operations);
+        Optimizer.Optimize(operations, compileError);
         if (hasError) return null;
 
         // Compile

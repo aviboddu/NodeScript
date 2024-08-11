@@ -5,12 +5,12 @@ namespace NodeScript;
 
 public static class NativeFuncs
 {
-    public static readonly FrozenDictionary<string, NativeDelegate> NativeFunctions = GetMethods();
+    public static readonly FrozenDictionary<string, NativeDelegate> NativeFunctions = GetMethods(typeof(NativeFuncs));
+    public static readonly FrozenDictionary<string, Type> NativeReturnTypes = GetReturnTypes(typeof(NativeFuncs));
 
-    public delegate object NativeDelegate(Span<object> parameters);
-    private static FrozenDictionary<string, NativeDelegate> GetMethods()
+    public static FrozenDictionary<string, NativeDelegate> GetMethods(Type type)
     {
-        MethodInfo[] nativeFuncs = typeof(NativeFuncs).GetMethods(BindingFlags.Static | BindingFlags.DeclaredOnly | BindingFlags.Public);
+        MethodInfo[] nativeFuncs = type.GetMethods(BindingFlags.Static | BindingFlags.DeclaredOnly | BindingFlags.Public);
         Dictionary<string, NativeDelegate> methods = [];
         foreach (MethodInfo nativeMeth in nativeFuncs)
             methods.Add(nativeMeth.Name, nativeMeth.CreateDelegate<NativeDelegate>());
@@ -18,118 +18,127 @@ public static class NativeFuncs
         return methods.ToFrozenDictionary();
     }
 
-    public static object length(Span<object> objs)
+    public static FrozenDictionary<string, Type> GetReturnTypes(Type type)
+    {
+        MethodInfo[] nativeFuncs = type.GetMethods(BindingFlags.Static | BindingFlags.DeclaredOnly | BindingFlags.Public);
+        Dictionary<string, Type> methods = [];
+        foreach (MethodInfo nativeMeth in nativeFuncs)
+            methods.Add(nativeMeth.Name, nativeMeth.ReturnType.GenericTypeArguments[0]);
+
+        return methods.ToFrozenDictionary();
+    }
+
+    public static Result<int> length(Span<object> objs)
     {
 
-        if (objs.Length != 1) return new Err("length takes exactly one parameter");
+        if (objs.Length != 1) return Result<int>.Fail("length takes exactly one parameter");
         return objs[0] switch
         {
-            int n => new Err("Cannot find the length of an integer"),
-            bool b => new Err("Cannot find the length of a boolean"),
-            string s => s.Length,
-            string[] a => a.Length,
-            _ => new Err("Unknown parameter"),
+            int n => Result<int>.Fail("Cannot find the length of an integer"),
+            bool b => Result<int>.Fail("Cannot find the length of a boolean"),
+            string s => Result<int>.Ok(s.Length),
+            string[] a => Result<int>.Ok(a.Length),
+            _ => Result<int>.Fail("Unknown parameter"),
         };
     }
 
-    public static object split(Span<object> objs)
+    public static Result<string[]> split(Span<object> objs)
     {
-        if (objs.Length != 2) return new Err("split takes two parameters");
+        if (objs.Length != 2) return Result<string[]>.Fail("split takes two parameters");
         if (objs[0] is not string || objs[1] is not string)
         {
-            return new Err("Both parameters for split must be a string");
+            return Result<string[]>.Fail("Both parameters for split must be a string");
         }
         string separator = (string)objs[0];
         string s = (string)objs[1];
-        return s.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return Result<string[]>.Ok(s.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
     }
 
-    public static object join(Span<object> objs)
+    public static Result<string> join(Span<object> objs)
     {
-        if (objs.Length != 2) return new Err("join takes two parameters");
+        if (objs.Length != 2) return Result<string>.Fail("join takes two parameters");
         if (objs[0] is not string || objs[1] is not string[])
         {
-            return new Err("join takes one string and one string array");
+            return Result<string>.Fail("join takes one string and one string array");
         }
         string separator = (string)objs[0];
         string[] s = (string[])objs[1];
-        return string.Join(separator, s);
+        return Result<string>.Ok(string.Join(separator, s));
     }
 
-    public static object index_of(Span<object> objs)
+    public static Result<int> index_of(Span<object> objs)
     {
-        if (objs.Length != 2) return new Err("index_of takes two parameters");
+        if (objs.Length != 2) return Result<int>.Fail("index_of takes two parameters");
         if (objs[0] is not string || objs[1] is not string)
         {
-            return new Err("index_of takes two strings");
+            return Result<int>.Fail("index_of takes two strings");
         }
         string search = (string)objs[0];
         string s = (string)objs[1];
-        return s.IndexOf(search);
+        return Result<int>.Ok(s.IndexOf(search));
     }
 
     public static object slice(Span<object> objs)
     {
-        if (objs.Length != 3) return new Err("slice takes three parameters");
+        if (objs.Length != 3) return Result<object>.Fail("slice takes three parameters");
         if (!(objs[0] is string || objs[0] is string[]) || objs[1] is not int || objs[2] is not int)
-        {
-            return new Err("slice takes one string or string array and two ints");
-        }
+            return Result<object>.Fail("slice takes one string or string array and two ints");
+
         int start = (int)objs[1];
         int end = (int)objs[2];
         if (objs[0] is string s)
-            return s.Substring(start, end);
-        return ((string[])objs[0])[start..end];
+            return Result<string>.Ok(s.Substring(start, end));
+        return Result<string[]>.Ok(((string[])objs[0])[start..end]);
     }
 
-    public static object element_at(Span<object> objs)
+    public static Result<string> element_at(Span<object> objs)
     {
-        if (objs.Length != 2) return new Err("element_at takes two parameters");
+        if (objs.Length != 2) return Result<string>.Fail("element_at takes two parameters");
         if (!(objs[0] is string || objs[0] is string[]) || objs[1] is not int)
         {
-            return new Err("element_at takes one string or string array and one int");
+            return Result<string>.Fail("element_at takes one string or string array and one int");
         }
         int idx = (int)objs[1];
         if (objs[0] is string s)
-            return s[idx].ToString();
-        return ((string[])objs[0])[idx];
+            return Result<string>.Ok(s[idx].ToString());
+        return Result<string>.Ok(((string[])objs[0])[idx]);
     }
 
-    public static object to_string(Span<object> objs)
+    public static Result<string> to_string(Span<object> objs)
     {
-        if (objs.Length != 1) return new Err("to_string takes one parameter");
-        return objs[0].ToString()!;
+        if (objs.Length != 1) return Result<string>.Fail("to_string takes one parameter");
+        return Result<string>.Ok(objs[0].ToString()!);
     }
 
-    public static object parse_int(Span<object> objs)
+    public static Result<int> parse_int(Span<object> objs)
     {
-        if (objs.Length != 1) return new Err("parse_int takes one parameter");
-        if (objs[0] is not string s) return new Err("parse_int takes in a single string");
+        if (objs.Length != 1) return Result<int>.Fail("parse_int takes one parameter");
+        if (objs[0] is not string s) return Result<int>.Fail("parse_int takes in a single string");
         if (!int.TryParse(s, out int i))
-            return new Err("Failed to parse int");
-        return i;
+            return Result<int>.Fail("Failed to parse int");
+        return Result<int>.Ok(i);
     }
 
-    public static object can_parse(Span<object> objs)
+    public static Result<bool> can_parse(Span<object> objs)
     {
-        if (objs.Length != 1) return new Err("can_parse takes one parameter");
-        if (objs[0] is not string s) return false;
-        return int.TryParse(s, out _);
+        if (objs.Length != 1) return Result<bool>.Fail("can_parse takes one parameter");
+        if (objs[0] is not string s) return Result<bool>.Ok(false);
+        return Result<bool>.Ok(int.TryParse(s, out _));
     }
 
-    public static object remove_at(Span<object> objs)
+    public static Result<string[]> remove_at(Span<object> objs)
     {
-        if (objs.Length != 2) return new Err("remove_at takes two parameters");
+        if (objs.Length != 2) return Result<string[]>.Fail("remove_at takes two parameters");
         if (objs[0] is not string[] a || objs[1] is not int i)
-            return new Err("remove_at takes in a string array and an int");
-        if (a.Length <= i) return new Err($"array does not have index {i}");
-        List<string> list = new(a);
-        list.RemoveAt(i);
-        return list.ToArray();
+            return Result<string[]>.Fail("remove_at takes in a string array and an int");
+        if (a.Length <= i) return Result<string[]>.Fail($"array does not have index {i}");
+        string[] list = new string[a.Length - 1];
+        for (int j = 0; j < i; j++)
+            list[j] = a[j];
+        for (int j = i + 1; j < a.Length; j++)
+            list[j - 1] = a[j];
+        return Result<string[]>.Ok([.. list]);
     }
 }
 
-public class Err(string msg)
-{
-    public readonly string msg = msg;
-}
+public delegate Result NativeDelegate(Span<object> parameters);

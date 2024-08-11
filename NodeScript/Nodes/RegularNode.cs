@@ -86,6 +86,7 @@ public class RegularNode : Node
         int num1;
         bool b;
         Span<object> parameters;
+        Result result;
         OpCode nextOp = (OpCode)Advance();
         switch (nextOp)
         {
@@ -182,16 +183,17 @@ public class RegularNode : Node
                 name = (string)constants[Advance()];
                 num1 = Advance();
                 parameters = stack.GetInternalArray().AsSpan()[(stack.Count - num1)..stack.Count];
-                if (!NativeFuncs.NativeFunctions.TryGetValue(name, out NativeFuncs.NativeDelegate? func))
+                if (!NativeFuncs.NativeFunctions.TryGetValue(name, out NativeDelegate? func))
                 {
                     Err($"Function {name} does not exist");
                     break;
                 }
-                v1 = func.Invoke(parameters);
+                result = func.Invoke(parameters);
                 while (num1-- > 0) stack.Pop();
-                if (v1 is Err err)
-                    Err(err.msg);
-                stack.Push(v1);
+                if (!result.Success())
+                    Err(result.message!);
+                else
+                    stack.Push(result.GetValue()!);
                 break;
             case RETURN:
                 State = NodeState.IDLE;

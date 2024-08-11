@@ -1,7 +1,8 @@
 namespace NodeScript;
 
-public abstract record Expr
+public abstract class Expr
 {
+    public Type Type = typeof(object);
     public abstract R Accept<R>(IVisitor<R> visitor);
     public interface IVisitor<R>
     {
@@ -16,37 +17,56 @@ public abstract record Expr
 
 }
 
-public record Binary(Expr Left, Token Op, Expr Right) : Expr
+public class Binary(Expr Left, Token Op, Expr Right) : Expr
 {
+    public Expr Left = Left;
+    public Token Op = Op;
+    public Expr Right = Right;
+
     public override R Accept<R>(IVisitor<R> visitor) => visitor.VisitBinaryExpr(this);
 }
 
-public record Index(Variable Variable, Expr[] Arguments) : Expr
+public class Index(Variable Variable, Expr[] Arguments) : Expr
 {
+    public Variable Variable = Variable;
+    public Expr[] Arguments = Arguments;
     public override R Accept<R>(IVisitor<R> visitor) => visitor.VisitIndexExpr(this);
 }
 
-public record Call(Variable Callee, Token Paren, List<Expr> Arguments) : Expr
+public class Call(Variable Callee, List<Expr> Arguments) : Expr
 {
+    public Variable Callee = Callee;
+    public List<Expr> Arguments = Arguments;
     public override R Accept<R>(IVisitor<R> visitor) => visitor.VisitCallExpr(this);
 }
 
-public record Grouping(Expr Expression) : Expr
+public class Grouping(Expr Expression) : Expr
 {
+    public Expr Expression = Expression;
     public override R Accept<R>(IVisitor<R> visitor) => visitor.VisitGroupingExpr(this);
 }
 
-public record Literal(object Value) : Expr
+public class Literal : Expr
 {
+    public object Value;
+
+    public Literal(object Value)
+    {
+        this.Value = Value;
+        Type = Value.GetType();
+    }
     public override R Accept<R>(IVisitor<R> visitor) => visitor.VisitLiteralExpr(this);
 }
 
-public record Unary(Token Op, Expr Right) : Expr
+public class Unary(Token Op, Expr Right) : Expr
 {
+    public Token Op = Op;
+    public Expr Right = Right;
     public override R Accept<R>(IVisitor<R> visitor) => visitor.VisitUnaryExpr(this);
 }
 
-public record Variable(Token Name) : Expr
+public class Variable(Token Name) : Expr
 {
+    public Token Name = Name;
     public override R Accept<R>(IVisitor<R> visitor) => visitor.VisitVariableExpr(this);
 }
