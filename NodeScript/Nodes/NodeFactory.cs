@@ -19,12 +19,12 @@ public static class NodeFactory
         Operation?[] operations = parser.Parse();
         if (hasError) return null;
 
-        // Validate
-        Validator.Validate(operations, compileError);
+        // Optimize
+        Optimizer.PropogateConstants(operations, compileError);
         if (hasError) return null;
 
-        // Optimize
-        Optimizer.Optimize(operations, compileError);
+        // Validate
+        Validator.Validate(operations, compileError);
         if (hasError) return null;
 
         // Compile

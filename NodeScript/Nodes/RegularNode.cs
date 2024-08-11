@@ -306,13 +306,20 @@ public class RegularNode : Node
     {
         switch (op)
         {
-            case GREATER: stack.Push(num1 > num2); break;
-            case GREATER_EQUAL: stack.Push(num1 >= num2); break;
-            case LESS: stack.Push(num1 < num2); break;
-            case LESS_EQUAL: stack.Push(num1 <= num2); break;
-            case SUBTRACT: stack.Push(num1 - num2); break;
-            case MULTIPLY: stack.Push(num1 * num2); break;
-            case DIVIDE: stack.Push(num1 / num2); break;
+            case GREATER:
+            case GREATERI: stack.Push(num1 > num2); break;
+            case GREATER_EQUAL:
+            case GREATER_EQUALI: stack.Push(num1 >= num2); break;
+            case LESS:
+            case LESSI: stack.Push(num1 < num2); break;
+            case LESS_EQUAL:
+            case LESS_EQUALI: stack.Push(num1 <= num2); break;
+            case SUBTRACT:
+            case SUBTRACTI: stack.Push(num1 - num2); break;
+            case MULTIPLY:
+            case MULTIPLYI: stack.Push(num1 * num2); break;
+            case DIVIDE:
+            case DIVIDEI: stack.Push(num1 / num2); break;
         }
     }
 

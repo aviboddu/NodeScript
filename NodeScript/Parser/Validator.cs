@@ -89,7 +89,7 @@ public static class Validator
             switch (op.operation)
             {
                 case PRINT:
-                    if (!IsType(op.expressions[0].Type, typeof(int)) || !IsType(op.expressions[0].Type, typeof(string)))
+                    if (!IsType(op.expressions[0].Type, typeof(int)) || !IsType(op.expressions[1].Type, typeof(string)))
                         errorHandler(i, $"PRINT must be of the form: PRINT <int>, <string>");
                     break;
                 case SET:

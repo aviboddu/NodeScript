@@ -5,7 +5,7 @@ using static TokenType;
 
 public static class Optimizer
 {
-    public static void Optimize(Operation?[] operations, CompileErrorHandler errorHandler)
+    public static void PropogateConstants(Operation?[] operations, CompileErrorHandler errorHandler)
     {
         for (int currentLine = 0; currentLine < operations.Length; currentLine++)
         {

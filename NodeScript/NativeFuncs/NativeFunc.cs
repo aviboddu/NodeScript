@@ -1,32 +1,12 @@
-using System.Collections.Frozen;
-using System.Reflection;
-
 namespace NodeScript;
+
+using System.Collections.Frozen;
+using static CompilerUtils;
 
 public static class NativeFuncs
 {
     public static readonly FrozenDictionary<string, NativeDelegate> NativeFunctions = GetMethods(typeof(NativeFuncs));
     public static readonly FrozenDictionary<string, Type> NativeReturnTypes = GetReturnTypes(typeof(NativeFuncs));
-
-    public static FrozenDictionary<string, NativeDelegate> GetMethods(Type type)
-    {
-        MethodInfo[] nativeFuncs = type.GetMethods(BindingFlags.Static | BindingFlags.DeclaredOnly | BindingFlags.Public);
-        Dictionary<string, NativeDelegate> methods = [];
-        foreach (MethodInfo nativeMeth in nativeFuncs)
-            methods.Add(nativeMeth.Name, nativeMeth.CreateDelegate<NativeDelegate>());
-
-        return methods.ToFrozenDictionary();
-    }
-
-    public static FrozenDictionary<string, Type> GetReturnTypes(Type type)
-    {
-        MethodInfo[] nativeFuncs = type.GetMethods(BindingFlags.Static | BindingFlags.DeclaredOnly | BindingFlags.Public);
-        Dictionary<string, Type> methods = [];
-        foreach (MethodInfo nativeMeth in nativeFuncs)
-            methods.Add(nativeMeth.Name, nativeMeth.ReturnType.GenericTypeArguments[0]);
-
-        return methods.ToFrozenDictionary();
-    }
 
     public static Result<int> length(Span<object> objs)
     {
@@ -78,7 +58,7 @@ public static class NativeFuncs
         return Result<int>.Ok(s.IndexOf(search));
     }
 
-    public static object slice(Span<object> objs)
+    public static Result<object> slice(Span<object> objs)
     {
         if (objs.Length != 3) return Result<object>.Fail("slice takes three parameters");
         if (!(objs[0] is string || objs[0] is string[]) || objs[1] is not int || objs[2] is not int)
@@ -87,8 +67,8 @@ public static class NativeFuncs
         int start = (int)objs[1];
         int end = (int)objs[2];
         if (objs[0] is string s)
-            return Result<string>.Ok(s.Substring(start, end));
-        return Result<string[]>.Ok(((string[])objs[0])[start..end]);
+            return Result<object>.Ok(s.Substring(start, end));
+        return Result<object>.Ok(((string[])objs[0])[start..end]);
     }
 
     public static Result<string> element_at(Span<object> objs)

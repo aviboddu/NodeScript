@@ -251,22 +251,15 @@ public class Compiler(Operation?[] operations, CompileErrorHandler errorHandler)
         {
             if (!expr.Variable.Accept(this)) return false;
             if (!expr.Arguments.All((a) => a.Accept(this))) return false;
-            switch (expr.Arguments.Length)
-            {
-                case 1:
-                    if (expr.Arguments[0].Type == typeof(int))
-                        Emit(OpCode.CALL_TYPE_KNOWN, MakeConst("element_at_int"), 2);
-                    else
-                        Emit(OpCode.CALL, MakeConst("element_at"), 2);
-                    break;
-                case 2:
-                    if (expr.Arguments[0].Type == typeof(int) || expr.Arguments[1].Type == typeof(int))
-                        Emit(OpCode.CALL_TYPE_KNOWN, MakeConst("slice_int_int"), 2);
-                    else
-                        Emit(OpCode.CALL, MakeConst("slice"), 2);
-                    break;
-                default: return false;
-            }
+            string f = expr.Arguments.Length == 1 ? "element_at" : "slice";
+            StringBuilder funcName = new(f);
+            funcName.Append(NativeFuncsKnownType.typeToStr[expr.Variable.Type]);
+            foreach (Expr ex in expr.Arguments)
+                funcName.Append(NativeFuncsKnownType.typeToStr[ex.Type]);
+            if (NativeFuncsKnownType.NativeFunctions.ContainsKey(funcName.ToString()))
+                Emit(OpCode.CALL_TYPE_KNOWN, MakeConst(funcName.ToString()), (byte)(expr.Arguments.Length + 1));
+            else
+                Emit(OpCode.CALL, MakeConst(f), (byte)(expr.Arguments.Length + 1));
             return true;
         }
 

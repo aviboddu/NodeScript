@@ -1,11 +1,11 @@
-using System.Collections.Frozen;
-
 namespace NodeScript;
 
+using System.Collections.Frozen;
+using static CompilerUtils;
 public static class NativeFuncsKnownType
 {
-    public static readonly FrozenDictionary<string, NativeDelegate> NativeFunctions = NativeFuncs.GetMethods(typeof(NativeFuncsKnownType));
-    public static readonly FrozenDictionary<string, Type> NativeReturnTypes = NativeFuncs.GetReturnTypes(typeof(NativeFuncsKnownType));
+    public static readonly FrozenDictionary<string, NativeDelegate> NativeFunctions = GetMethods(typeof(NativeFuncsKnownType));
+    public static readonly FrozenDictionary<string, Type> NativeReturnTypes = GetReturnTypes(typeof(NativeFuncsKnownType));
     public static readonly FrozenDictionary<Type, string> typeToStr = new Dictionary<Type, string>()
     {
         [typeof(string)] = "_str",
@@ -45,7 +45,7 @@ public static class NativeFuncsKnownType
         return Result<int>.Ok(s.IndexOf(search));
     }
 
-    public static object slice_stra_int_int(Span<object> objs)
+    public static Result<string[]> slice_stra_int_int(Span<object> objs)
     {
         string[] a = (string[])objs[0];
         int start = (int)objs[1];
@@ -53,7 +53,7 @@ public static class NativeFuncsKnownType
         return Result<string[]>.Ok(a[start..end]);
     }
 
-    public static object slice_str_int_int(Span<object> objs)
+    public static Result<string> slice_str_int_int(Span<object> objs)
     {
         string s = (string)objs[0];
         int start = (int)objs[1];
@@ -61,7 +61,7 @@ public static class NativeFuncsKnownType
         return Result<string>.Ok(s.Substring(start, end));
     }
 
-    public static Result<string> element_at_stra(Span<object> objs)
+    public static Result<string> element_at_stra_int(Span<object> objs)
     {
         string[] a = (string[])objs[0];
         int idx = (int)objs[1];
@@ -69,7 +69,7 @@ public static class NativeFuncsKnownType
     }
 
 
-    public static Result<string> element_at_str(Span<object> objs)
+    public static Result<string> element_at_str_int(Span<object> objs)
     {
         string s = (string)objs[0];
         int idx = (int)objs[1];
