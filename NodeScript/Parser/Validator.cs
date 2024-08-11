@@ -161,6 +161,8 @@ public static class Validator
                         expr.Type = typeof(int);
                     else if (leftType == typeof(string) || rightType == typeof(string))
                         expr.Type = typeof(string);
+                    else if (leftType == typeof(string[]) || rightType == typeof(string[]))
+                        expr.Type = typeof(string[]);
                     break;
             }
             return expr.Type;

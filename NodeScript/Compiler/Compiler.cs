@@ -4,6 +4,7 @@ using System.Diagnostics;
 
 using static TokenType;
 using static CompilerUtils;
+using System.Text;
 
 [DebuggerDisplay("currentLine = {currentLine, nq}")]
 public class Compiler(Operation?[] operations, CompileErrorHandler errorHandler)
@@ -78,7 +79,13 @@ public class Compiler(Operation?[] operations, CompileErrorHandler errorHandler)
                 bytes.Add((byte)OpCode.SET);
                 bytes.Add(id);
                 break;
-            case PRINT: bytes.Add((byte)OpCode.PRINT); lines.Add(currentLine); break;
+            case PRINT:
+                if (op.expressions[0].Type == typeof(int) && op.expressions[1].Type == typeof(string))
+                    bytes.Add((byte)OpCode.PRINTIS);
+                else
+                    bytes.Add((byte)OpCode.PRINT);
+                lines.Add(currentLine);
+                break;
             case RETURN: bytes.Add((byte)OpCode.RETURN); lines.Add(currentLine); break;
             case IF:
                 bytes.Add((byte)OpCode.JUMP_IF_FALSE); bytes.Add(0xff); bytes.Add(0xff);
@@ -169,18 +176,72 @@ public class Compiler(Operation?[] operations, CompileErrorHandler errorHandler)
             expr.Right.Accept(this);
             switch (expr.Op.type)
             {
-                case LESS: Emit(OpCode.LESS); break;
-                case LESS_EQUAL: Emit(OpCode.GREATER); Emit(OpCode.NEGATE); break;
-                case MINUS: Emit(OpCode.SUBTRACT); break;
-                case OR: Emit(OpCode.OR); break;
-                case PLUS: Emit(OpCode.ADD); break;
-                case SLASH: Emit(OpCode.DIVIDE); break;
-                case STAR: Emit(OpCode.MULTIPLY); break;
-                case AND: Emit(OpCode.AND); break;
-                case BANG_EQUAL: Emit(OpCode.EQUAL); Emit(OpCode.NEGATE); break;
+                case LESS:
+                    if (expr.Left.Type == typeof(int) && expr.Right.Type == typeof(int))
+                        Emit(OpCode.LESSI);
+                    else
+                        Emit(OpCode.LESS);
+                    break;
+                case LESS_EQUAL:
+                    if (expr.Left.Type == typeof(int) && expr.Right.Type == typeof(int))
+                        Emit(OpCode.LESS_EQUALI);
+                    else
+                        Emit(OpCode.LESS_EQUAL);
+                    break;
+                case MINUS:
+                    if (expr.Left.Type == typeof(int) && expr.Right.Type == typeof(int))
+                        Emit(OpCode.SUBTRACTI);
+                    else
+                        Emit(OpCode.SUBTRACT);
+                    break;
+                case OR:
+                    if (expr.Left.Type == typeof(bool) && expr.Right.Type == typeof(bool))
+                        Emit(OpCode.ORB);
+                    else
+                        Emit(OpCode.OR);
+                    break;
+                case PLUS:
+                    if (expr.Left.Type == typeof(int) && expr.Right.Type == typeof(int))
+                        Emit(OpCode.ADDI);
+                    else if (expr.Left.Type == typeof(string) && expr.Right.Type == typeof(string))
+                        Emit(OpCode.ADDS);
+                    else if (expr.Left.Type == typeof(string[]) && expr.Right.Type == typeof(string[]))
+                        Emit(OpCode.ADDA);
+                    else
+                        Emit(OpCode.ADD);
+                    break;
+                case SLASH:
+                    if (expr.Left.Type == typeof(int) && expr.Right.Type == typeof(int))
+                        Emit(OpCode.DIVIDEI);
+                    else
+                        Emit(OpCode.DIVIDE);
+                    break;
+                case STAR:
+                    if (expr.Left.Type == typeof(int) && expr.Right.Type == typeof(int))
+                        Emit(OpCode.MULTIPLYI);
+                    else
+                        Emit(OpCode.MULTIPLY);
+                    break;
+                case AND:
+                    if (expr.Left.Type == typeof(bool) && expr.Right.Type == typeof(bool))
+                        Emit(OpCode.ANDB);
+                    else
+                        Emit(OpCode.AND);
+                    break;
+                case BANG_EQUAL: Emit(OpCode.NOT_EQUAL); break;
                 case EQUAL_EQUAL: Emit(OpCode.EQUAL); break;
-                case GREATER: Emit(OpCode.GREATER); break;
-                case GREATER_EQUAL: Emit(OpCode.LESS); Emit(OpCode.NEGATE); break;
+                case GREATER:
+                    if (expr.Left.Type == typeof(int) && expr.Right.Type == typeof(int))
+                        Emit(OpCode.GREATERI);
+                    else
+                        Emit(OpCode.GREATER);
+                    break;
+                case GREATER_EQUAL:
+                    if (expr.Left.Type == typeof(int) && expr.Right.Type == typeof(int))
+                        Emit(OpCode.GREATER_EQUALI);
+                    else
+                        Emit(OpCode.GREATER_EQUAL);
+                    break;
                 default: return false;
             }
             return true;
@@ -193,10 +254,16 @@ public class Compiler(Operation?[] operations, CompileErrorHandler errorHandler)
             switch (expr.Arguments.Length)
             {
                 case 1:
-                    Emit(OpCode.CALL, MakeConst("element_at"), 2);
+                    if (expr.Arguments[0].Type == typeof(int))
+                        Emit(OpCode.CALL_TYPE_KNOWN, MakeConst("element_at_int"), 2);
+                    else
+                        Emit(OpCode.CALL, MakeConst("element_at"), 2);
                     break;
                 case 2:
-                    Emit(OpCode.CALL, MakeConst("slice"), 3);
+                    if (expr.Arguments[0].Type == typeof(int) || expr.Arguments[1].Type == typeof(int))
+                        Emit(OpCode.CALL_TYPE_KNOWN, MakeConst("slice_int_int"), 2);
+                    else
+                        Emit(OpCode.CALL, MakeConst("slice"), 2);
                     break;
                 default: return false;
             }
@@ -206,7 +273,13 @@ public class Compiler(Operation?[] operations, CompileErrorHandler errorHandler)
         public bool VisitCallExpr(Call expr)
         {
             if (!expr.Arguments.All((e) => e.Accept(this))) return false;
-            Emit(OpCode.CALL, MakeConst(expr.Callee.Name.Lexeme.ToString()), (byte)expr.Arguments.Count);
+            StringBuilder funcName = new(expr.Callee.Name.Lexeme.ToString());
+            foreach (Expr ex in expr.Arguments)
+                funcName.Append(NativeFuncsKnownType.typeToStr[ex.Type]);
+            if (NativeFuncsKnownType.NativeFunctions.TryGetValue(funcName.ToString(), out NativeDelegate? value))
+                Emit(OpCode.CALL_TYPE_KNOWN, MakeConst(funcName.ToString()), (byte)expr.Arguments.Count);
+            else
+                Emit(OpCode.CALL, MakeConst(expr.Callee.Name.Lexeme.ToString()), (byte)expr.Arguments.Count);
             return true;
         }
 
@@ -230,8 +303,18 @@ public class Compiler(Operation?[] operations, CompileErrorHandler errorHandler)
             expr.Right.Accept(this);
             switch (expr.Op.type)
             {
-                case MINUS: Emit(OpCode.NEGATE); break;
-                case BANG: Emit(OpCode.NOT); break;
+                case MINUS:
+                    if (expr.Right.Type == typeof(int))
+                        Emit(OpCode.NEGATEI);
+                    else
+                        Emit(OpCode.NEGATE);
+                    break;
+                case BANG:
+                    if (expr.Right.Type == typeof(bool))
+                        Emit(OpCode.NOTB);
+                    else
+                        Emit(OpCode.NOT);
+                    break;
                 default: return false;
             }
             return true;

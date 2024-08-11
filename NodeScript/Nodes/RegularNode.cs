@@ -1,5 +1,6 @@
 namespace NodeScript;
 
+using System.ComponentModel;
 using System.Diagnostics;
 using static OpCode;
 
@@ -108,12 +109,30 @@ public class RegularNode : Node
                 v1 = stack.Pop();
                 stack.Push(v1.Equals(v2));
                 break;
+            case NOT_EQUAL:
+                v2 = stack.Pop();
+                v1 = stack.Pop();
+                stack.Push(!v1.Equals(v2));
+                break;
             case GREATER:
+            case GREATER_EQUAL:
             case LESS:
+            case LESS_EQUAL:
             case SUBTRACT:
             case MULTIPLY:
             case DIVIDE:
                 BinaryArithmetic(nextOp);
+                break;
+            case GREATERI:
+            case GREATER_EQUALI:
+            case LESSI:
+            case LESS_EQUALI:
+            case SUBTRACTI:
+            case MULTIPLYI:
+            case DIVIDEI:
+                v2 = stack.Pop();
+                v1 = stack.Pop();
+                BinaryArithmeticUnchecked(nextOp, (int)v1, (int)v2);
                 break;
             case ADD:
                 v2 = stack.Pop();
@@ -126,30 +145,63 @@ public class RegularNode : Node
                     default: Err("Arguments must be either int, string or string[]"); break;
                 }
                 break;
+            case ADDI:
+                v2 = stack.Pop();
+                v1 = stack.Pop();
+                stack.Push((int)v1 + (int)v2);
+                break;
+            case ADDS:
+                v2 = stack.Pop();
+                v1 = stack.Pop();
+                stack.Push((string)v1 + (string)v2);
+                break;
+            case ADDA:
+                v2 = stack.Pop();
+                v1 = stack.Pop();
+                stack.Push(((string[])v1).Concat((string[])v2));
+                break;
             case AND:
                 v2 = stack.Pop();
                 v1 = stack.Pop();
                 if (ValidateType<bool>(v1, v2)) stack.Push((bool)v1 && (bool)v2);
+                break;
+            case ANDB:
+                v2 = stack.Pop();
+                v1 = stack.Pop();
+                stack.Push((bool)v1 && (bool)v2);
                 break;
             case OR:
                 v2 = stack.Pop();
                 v1 = stack.Pop();
                 if (ValidateType<bool>(v1, v2)) stack.Push((bool)v1 || (bool)v2);
                 break;
+            case ORB:
+                v2 = stack.Pop();
+                v1 = stack.Pop();
+                stack.Push((bool)v1 || (bool)v2);
+                break;
             case NEGATE:
                 v1 = stack.Pop();
                 if (ValidateType<int>(v1)) stack.Push(-(int)v1);
+                break;
+            case NEGATEI:
+                v1 = stack.Pop();
+                stack.Push(-(int)v1);
                 break;
             case NOT:
                 v1 = stack.Pop();
                 if (ValidateType<bool>(v1)) stack.Push(!(bool)v1);
                 break;
+            case NOTB:
+                v1 = stack.Pop();
+                stack.Push(!(bool)v1);
+                break;
             case PRINT:
                 v2 = stack.Pop();
                 v1 = stack.Pop();
-                if (ValidateType<int>(v1))
+                if (ValidateType<int>(v1) && ValidateType<string>(v2))
                 {
-                    if (!outputs[(int)v1].PushInput(v2.ToString()!))
+                    if (!outputs[(int)v1].PushInput((string)v2))
                     {
                         stack.Push(v1);
                         stack.Push(v2);
@@ -160,6 +212,21 @@ public class RegularNode : Node
                     {
                         State = NodeState.RUNNING;
                     }
+                }
+                return false;
+            case PRINTIS:
+                v2 = stack.Pop();
+                v1 = stack.Pop();
+                if (!outputs[(int)v1].PushInput(v2.ToString()!))
+                {
+                    stack.Push(v1);
+                    stack.Push(v2);
+                    nextInstruction--;
+                    State = NodeState.BLOCKED;
+                }
+                else
+                {
+                    State = NodeState.RUNNING;
                 }
                 return false;
             case JUMP:
@@ -188,7 +255,23 @@ public class RegularNode : Node
                     Err($"Function {name} does not exist");
                     break;
                 }
-                result = func.Invoke(parameters);
+                result = func(parameters);
+                while (num1-- > 0) stack.Pop();
+                if (!result.Success())
+                    Err(result.message!);
+                else
+                    stack.Push(result.GetValue()!);
+                break;
+            case CALL_TYPE_KNOWN:
+                name = (string)constants[Advance()];
+                num1 = Advance();
+                parameters = stack.GetInternalArray().AsSpan()[(stack.Count - num1)..stack.Count];
+                if (!NativeFuncsKnownType.NativeFunctions.TryGetValue(name, out NativeDelegate? knownFunc))
+                {
+                    Err($"Function {name} does not exist");
+                    break;
+                }
+                result = knownFunc(parameters);
                 while (num1-- > 0) stack.Pop();
                 if (!result.Success())
                     Err(result.message!);
@@ -216,12 +299,17 @@ public class RegularNode : Node
         if (!ValidateType<int>(val1, val2))
             return;
 
-        int num1 = (int)val1;
-        int num2 = (int)val2;
+        BinaryArithmeticUnchecked(op, (int)val1, (int)val2);
+    }
+
+    private void BinaryArithmeticUnchecked(OpCode op, int num1, int num2)
+    {
         switch (op)
         {
             case GREATER: stack.Push(num1 > num2); break;
+            case GREATER_EQUAL: stack.Push(num1 >= num2); break;
             case LESS: stack.Push(num1 < num2); break;
+            case LESS_EQUAL: stack.Push(num1 <= num2); break;
             case SUBTRACT: stack.Push(num1 - num2); break;
             case MULTIPLY: stack.Push(num1 * num2); break;
             case DIVIDE: stack.Push(num1 / num2); break;
