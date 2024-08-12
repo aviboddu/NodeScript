@@ -5,14 +5,23 @@ namespace NodeScript;
 [DebuggerDisplay("stringReader = {input}")]
 public class InputNode : Node
 {
-    private readonly StringReader input;
+    private readonly string inputData;
+    private StringReader input;
     private readonly Node output;
     private string? currentLine = null;
 
     public InputNode(string input, Node output)
     {
+        inputData = input;
         this.input = new(input);
         this.output = output;
+        State = NodeState.RUNNING;
+    }
+
+    public void Reset()
+    {
+        input = new(inputData);
+        currentLine = null;
         State = NodeState.RUNNING;
     }
 

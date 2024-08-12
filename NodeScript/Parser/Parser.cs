@@ -62,7 +62,7 @@ public class Parser(Token[][] tokens, CompileErrorHandler errorHandler)
 
         if (Consume(SEMICOLON, "Expected semicolon") is null)
         {
-            errorHandler.Invoke(currentLine, $"Unexpected token {tokens[currentLine][currentToken].type},"
+            errorHandler.Invoke(currentLine, $"Unexpected token, "
                     + $"{op.operation} only requires {op.expressions.Length} expressions");
             return null;
         }

@@ -1,0 +1,17 @@
+SET arr, split(",", input);
+SET len1, length(arr[0]);
+SET len2, length(arr[1]);
+SET len3, length(arr[2]);
+SET output, arr[0];
+IF len2 > len1;
+IF len3 > len2;
+SET output, arr[2];
+ELSE;
+SET output, arr[1];
+ENDIF;
+ELSE;
+IF len3 > len1;
+SET output, arr[2];
+ENDIF;
+ENDIF;
+PRINT 0, output;

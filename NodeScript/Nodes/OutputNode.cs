@@ -19,4 +19,6 @@ public class OutputNode : Node
     {
         return;
     }
+
+    public void Reset() => outputBuilder.Clear();
 }

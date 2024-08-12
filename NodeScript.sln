@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeScript", "NodeScript\No
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeScriptTest", "NodeScriptTest\NodeScriptTest.csproj", "{B8F33F7D-72E5-4E22-8F6A-39E525D44A85}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NodeScriptBenchmark", "NodeScriptBenchmark\NodeScriptBenchmark.csproj", "{D7EE660C-8A4B-4AED-BFC5-93B0D765B04D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -24,5 +26,9 @@ Global
 		{B8F33F7D-72E5-4E22-8F6A-39E525D44A85}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B8F33F7D-72E5-4E22-8F6A-39E525D44A85}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B8F33F7D-72E5-4E22-8F6A-39E525D44A85}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D7EE660C-8A4B-4AED-BFC5-93B0D765B04D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D7EE660C-8A4B-4AED-BFC5-93B0D765B04D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D7EE660C-8A4B-4AED-BFC5-93B0D765B04D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D7EE660C-8A4B-4AED-BFC5-93B0D765B04D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

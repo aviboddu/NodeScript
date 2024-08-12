@@ -2,3 +2,6 @@ NodeScript/bin/
 NodeScript/obj/
 NodeScriptTest/bin/
 NodeScriptTest/obj/
+NodeScriptBenchmark/bin/
+NodeScriptBenchmark/obj/
+NodeScriptBenchmark/BenchmarkDotNet.Artifacts/
