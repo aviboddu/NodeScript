@@ -5,7 +5,6 @@ using BenchmarkDotNet.Running;
 namespace NodeScriptBenchmark
 {
     [ShortRunJob]
-    [JsonExporter(indentJson: true, excludeMeasurements: true)]
     public class Benchmark
     {
         private readonly string code;
