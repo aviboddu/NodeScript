@@ -1,11 +1,11 @@
 ﻿using NodeScript;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
-using BenchmarkDotNet.Engines;
 
 namespace NodeScriptBenchmark
 {
-    [SimpleJob(RunStrategy.Throughput)]
+    [ShortRunJob]
+    [JsonExporter(indentJson: true, excludeMeasurements: true)]
     public class Benchmark
     {
         private readonly string code;
