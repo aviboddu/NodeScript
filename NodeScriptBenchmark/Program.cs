@@ -6,36 +6,26 @@ using BenchmarkDotNet.Engines;
 namespace NodeScriptBenchmark
 {
     [SimpleJob(RunStrategy.Throughput)]
-    public class Compilation
+    public class Benchmark
     {
         private readonly string code;
+        private readonly InputNode input;
+        private readonly RegularNode regular;
+        private readonly OutputNode output;
 
-        public Compilation()
+        public Benchmark()
         {
+            string input_data = File.ReadAllText("../../../../../../../TestData/LongestString.in");
             code = File.ReadAllText("../../../../../../../TestData/LongestString.ns");
+            output = new();
+            regular = NodeFactory.CreateRegularNode(code, [output], Program.CompileErrorHandler, Program.RuntimeErrorHandler)!;
+            input = new(input_data, regular);
         }
 
         [Benchmark]
         public void Compile()
         {
             RegularNode? node = NodeFactory.CreateRegularNode(code, [], Program.CompileErrorHandler, Program.RuntimeErrorHandler);
-        }
-    }
-
-    [SimpleJob(RunStrategy.Throughput)]
-    public class Execution
-    {
-        private readonly InputNode input;
-        private readonly RegularNode regular;
-        private readonly OutputNode output;
-
-        public Execution()
-        {
-            string input_data = File.ReadAllText("../../../../../../../TestData/LongestString.in");
-            string code = File.ReadAllText("../../../../../../../TestData/LongestString.ns");
-            output = new();
-            regular = NodeFactory.CreateRegularNode(code, [output], Program.CompileErrorHandler, Program.RuntimeErrorHandler)!;
-            input = new(input_data, regular);
         }
 
         [Benchmark]
@@ -55,8 +45,7 @@ namespace NodeScriptBenchmark
     {
         public static void Main(string[] args)
         {
-            var summary = BenchmarkRunner.Run<Compilation>();
-            summary = BenchmarkRunner.Run<Execution>();
+            var summary = BenchmarkRunner.Run<Benchmark>();
         }
 
         public static void CompileErrorHandler(int line, string msg)
@@ -64,7 +53,7 @@ namespace NodeScriptBenchmark
             Console.Error.WriteLine($"Error at line {line}: {msg}");
         }
 
-        public static void RuntimeErrorHandler(Node node, int line, string msg)
+        public static void RuntimeErrorHandler(Node _, int line, string msg)
         {
             Console.Error.WriteLine($"Error at line {line}: {msg}");
         }

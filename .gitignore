@@ -5,3 +5,4 @@ NodeScriptTest/obj/
 NodeScriptBenchmark/bin/
 NodeScriptBenchmark/obj/
 NodeScriptBenchmark/BenchmarkDotNet.Artifacts/
+BenchmarkDotNet.Artifacts/
