@@ -1,4 +1,5 @@
 # NodeScript
+![Tests passing](https://github.com/aviboddu/NodeScript/actions/workflows/dotnet.yml/badge.svg)
 NodeScript is a rudimentary programming language designed to function on 'nodes', intended for use in puzzle games. Find development details [here](./Development.md)
 
 ## Nodes
