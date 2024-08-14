@@ -28,5 +28,6 @@ jobs:
         name: benchmark-results
         path: ./BenchmarkDotNet.Artifacts/results/*.md
         retention-days: 0
+        compression-level: 0
         overwrite: true
           
