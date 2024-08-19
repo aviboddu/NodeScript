@@ -7,7 +7,7 @@ namespace NodeScript;
 public class OutputNode : Node
 {
     private readonly StringBuilder outputBuilder = new();
-    public string output => outputBuilder.ToString();
+    public string Output => outputBuilder.ToString();
 
     public override bool PushInput(string input)
     {

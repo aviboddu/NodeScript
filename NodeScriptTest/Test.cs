@@ -16,7 +16,7 @@ public class Test(string testName)
             inputNode.StepLine();
             regularNode.StepLine();
         }
-        Assert.AreEqual(expectedOutput, outputNode.output);
+        Assert.AreEqual(expectedOutput, outputNode.Output);
     }
 
     private void CompileError(int line, string message)

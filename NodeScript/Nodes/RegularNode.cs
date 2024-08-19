@@ -8,7 +8,7 @@ public class RegularNode : Node
 {
     private static readonly string[] globalVars = ["input", "mem"];
 
-    public readonly Node[] outputs;
+    public Node[]? outputs;
     private readonly ErrorHandler runtimeError;
 
     private readonly byte[] code;
@@ -20,7 +20,7 @@ public class RegularNode : Node
     private int nextInstruction = 0;
     private bool panic = false;
 
-    public RegularNode(byte[] code, object[] constants, Node[] outputs, int[] lines, ErrorHandler runtimeError)
+    public RegularNode(byte[] code, object[] constants, int[] lines, ErrorHandler runtimeError, Node[]? outputs = null)
     {
         this.code = code;
         this.constants = constants;
@@ -200,7 +200,7 @@ public class RegularNode : Node
                 v1 = stack.Pop();
                 if (ValidateType<int>(v1) && ValidateType<string>(v2))
                 {
-                    if (!outputs[(int)v1].PushInput((string)v2))
+                    if ((!outputs?[(int)v1].PushInput((string)v2)) ?? true)
                     {
                         stack.Push(v1);
                         stack.Push(v2);
@@ -216,7 +216,7 @@ public class RegularNode : Node
             case PRINTIS:
                 v2 = stack.Pop();
                 v1 = stack.Pop();
-                if (!outputs[(int)v1].PushInput(v2.ToString()!))
+                if ((!outputs?[(int)v1].PushInput(v2.ToString()!)) ?? true)
                 {
                     stack.Push(v1);
                     stack.Push(v2);

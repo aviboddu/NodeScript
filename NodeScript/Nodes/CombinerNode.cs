@@ -3,9 +3,9 @@ using System.Diagnostics;
 namespace NodeScript;
 
 [DebuggerDisplay("input = {input, nq}")]
-public class CombinerNode(Node output) : Node
+public class CombinerNode(Node? output) : Node
 {
-    private readonly Node output = output;
+    public Node? output = output;
     private string? input = null;
 
     public override bool PushInput(string input)
@@ -21,7 +21,7 @@ public class CombinerNode(Node output) : Node
     public override void StepLine()
     {
         if (input is null) return;
-        if (output.PushInput(input!)) input = null;
+        if (output?.PushInput(input!) ?? false) input = null;
     }
 
     public override void Reset()

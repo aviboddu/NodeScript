@@ -4,7 +4,10 @@ using static CompilerUtils;
 
 public static class NodeFactory
 {
-    public static RegularNode? CreateRegularNode(string source, Node[] outputNodes, CompileErrorHandler compileError, ErrorHandler runtimeError)
+    public static InputNode CreateInputNode(string inputData) => new(inputData);
+    public static CombinerNode CreateCombinerNode(Node? output = null) => new(output);
+    public static OutputNode CreateOutputNode() => new();
+    public static RegularNode? CreateRegularNode(string source, CompileErrorHandler compileError, ErrorHandler runtimeError, Node[]? outputs = null)
     {
         bool hasError = false;
         compileError += (int _, string _) => hasError = true;
@@ -32,7 +35,7 @@ public static class NodeFactory
         (byte[] code, object[] constants, int[] lines) = compiler.Compile();
         if (hasError) return null;
 
-        RegularNode regularNode = new(code, constants, outputNodes, lines, runtimeError);
+        RegularNode regularNode = new(code, constants, lines, runtimeError, outputs);
         return regularNode;
     }
 }

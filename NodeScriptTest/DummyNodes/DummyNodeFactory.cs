@@ -18,7 +18,7 @@ public static class DummyNodeFactory
     public static RegularNode? CreateRegularNode(string filePath, Node[] outputs, CompilerUtils.CompileErrorHandler compileErrorHandler, ErrorHandler runtimeErrorHandler)
     {
         string code = File.ReadAllText(filePath);
-        return NodeFactory.CreateRegularNode(code, outputs, compileErrorHandler, runtimeErrorHandler);
+        return NodeFactory.CreateRegularNode(code, compileErrorHandler, runtimeErrorHandler, outputs);
     }
 
     public static (InputNode, RegularNode, OutputNode) CreateNodePath(string inputFilePath, string codePath, CompilerUtils.CompileErrorHandler compileErrorHandler, ErrorHandler runtimeErrorHandler)

@@ -5,12 +5,13 @@ namespace NodeScript;
 [DebuggerDisplay("stringReader = {input}")]
 public class InputNode : Node
 {
+    public Node? output;
+
     private readonly string inputData;
     private StringReader input;
-    private readonly Node output;
     private string? currentLine = null;
 
-    public InputNode(string input, Node output)
+    public InputNode(string input, Node? output = null)
     {
         inputData = input;
         this.input = new(input);
@@ -39,7 +40,7 @@ public class InputNode : Node
             return;
         }
         currentLine ??= input.ReadLine();
-        if (output.PushInput(currentLine!))
+        if (output?.PushInput(currentLine!) ?? false)
             currentLine = null;
     }
 }
