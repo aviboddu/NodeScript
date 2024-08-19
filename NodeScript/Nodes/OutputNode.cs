@@ -20,5 +20,5 @@ public class OutputNode : Node
         return;
     }
 
-    public void Reset() => outputBuilder.Clear();
+    public override void Reset() => outputBuilder.Clear();
 }

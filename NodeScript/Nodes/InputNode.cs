@@ -18,7 +18,7 @@ public class InputNode : Node
         State = NodeState.RUNNING;
     }
 
-    public void Reset()
+    public override void Reset()
     {
         input = new(inputData);
         currentLine = null;

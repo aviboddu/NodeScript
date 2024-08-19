@@ -9,6 +9,8 @@ public abstract class Node
 
     // Steps through the code in this node line-by-line
     public abstract void StepLine();
+
+    public abstract void Reset();
 }
 
 public enum NodeState

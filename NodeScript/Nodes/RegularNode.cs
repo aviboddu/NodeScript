@@ -1,6 +1,5 @@
 namespace NodeScript;
 
-using System.ComponentModel;
 using System.Diagnostics;
 using static OpCode;
 
@@ -288,6 +287,14 @@ public class RegularNode : Node
         return false;
     }
 
+    public override void Reset()
+    {
+        State = NodeState.IDLE;
+        nextInstruction = 0;
+        variables.Clear();
+        InitGlobals();
+    }
+
     private byte Advance() => code[nextInstruction++];
     private ushort NextShort() => (ushort)((Advance() << 8) | (Advance() & 0xff));
 
@@ -319,7 +326,12 @@ public class RegularNode : Node
             case MULTIPLY:
             case MULTIPLYI: stack.Push(num1 * num2); break;
             case DIVIDE:
-            case DIVIDEI: stack.Push(num1 / num2); break;
+            case DIVIDEI:
+                if (num2 == 0)
+                    Err("Cannot divide by 0");
+                else
+                    stack.Push(num1 / num2);
+                break;
         }
     }
 

@@ -23,4 +23,9 @@ public class CombinerNode(Node output) : Node
         if (input is null) return;
         if (output.PushInput(input!)) input = null;
     }
+
+    public override void Reset()
+    {
+        input = null;
+    }
 }
