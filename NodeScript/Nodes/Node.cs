@@ -11,6 +11,8 @@ public abstract class Node
     public abstract void StepLine();
 
     public abstract void Reset();
+
+    public abstract Node[] OutputNodes();
 }
 
 public enum NodeState

@@ -1,21 +1,24 @@
 namespace NodeScript;
 
-// TODO: Add checks to make sure there is exactly only one input and one output node
-// TODO: Add execution method
 // TODO: Expand Compile and Runtime error handling
 public class Script
 {
     private readonly List<NodeData> nodesData = [];
     public Node[] Nodes { get; private set; } = [];
+    private Node[] NodesToExecute = [];
 
     public int AddInputNode(string inputData)
     {
+        if (nodesData.Any(x => x is InputNodeData))
+            throw new ArgumentException("Can only have one input node");
         nodesData.Add(new InputNodeData(inputData));
         return nodesData.Count - 1;
     }
 
     public int AddOutputNode()
     {
+        if (nodesData.Any(x => x is OutputNodeData))
+            throw new ArgumentException("Can only have one output node");
         nodesData.Add(new OutputNodeData());
         return nodesData.Count - 1;
     }
@@ -78,16 +81,47 @@ public class Script
     public bool CompileNodes()
     {
         Nodes = new Node[nodesData.Count];
-        bool compileSuccess = true;
         for (int i = 0; i < nodesData.Count; i++)
-            compileSuccess &= CompileNode(i);
-
-        if (!compileSuccess) return false; ;
+            if (!CompileNode(i)) return false;
 
         for (int i = 0; i < nodesData.Count; i++)
             LinkNode(i);
 
+        Queue<Node> nodeQueue = new([Nodes.OfType<InputNode>().Single()]);
+        List<Node> executionList = new(Nodes.Length);
+        while (nodeQueue.Count > 0)
+        {
+            Node node = nodeQueue.Dequeue();
+            executionList.Add(node);
+            foreach (Node output in node.OutputNodes())
+            {
+                if (!executionList.Contains(output))
+                    nodeQueue.Enqueue(output);
+            }
+        }
+        NodesToExecute = [.. executionList];
+
         return true;
+    }
+
+    public void Reset()
+    {
+        foreach (Node node in NodesToExecute)
+            node.Reset();
+    }
+
+    public void Run()
+    {
+        do
+        {
+            StepLine();
+        } while (NodesToExecute.Any(n => n.State == NodeState.RUNNING));
+    }
+
+    public void StepLine()
+    {
+        foreach (Node node in NodesToExecute)
+            node.StepLine();
     }
 
     private bool CompileNode(int id)

@@ -21,4 +21,9 @@ public class OutputNode : Node
     }
 
     public override void Reset() => outputBuilder.Clear();
+
+    public override Node[] OutputNodes()
+    {
+        return [];
+    }
 }

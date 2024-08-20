@@ -28,4 +28,9 @@ public class CombinerNode(Node? output) : Node
     {
         input = null;
     }
+
+    public override Node[] OutputNodes()
+    {
+        return output is null ? [] : [output];
+    }
 }

@@ -43,4 +43,9 @@ public class InputNode : Node
         if (output?.PushInput(currentLine!) ?? false)
             currentLine = null;
     }
+
+    public override Node[] OutputNodes()
+    {
+        return output is null ? [] : [output];
+    }
 }

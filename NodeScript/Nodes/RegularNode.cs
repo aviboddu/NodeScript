@@ -335,6 +335,11 @@ public class RegularNode : Node
         }
     }
 
+    public override Node[] OutputNodes()
+    {
+        return outputs is null ? [] : outputs;
+    }
+
     private bool ValidateType<T>(params object[] vals)
     {
         bool valid = vals.All((v) => v is T);
