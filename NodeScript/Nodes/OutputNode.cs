@@ -26,4 +26,9 @@ public class OutputNode : Node
     {
         return [];
     }
+
+    public override string ToString()
+    {
+        return "OutputNode";
+    }
 }

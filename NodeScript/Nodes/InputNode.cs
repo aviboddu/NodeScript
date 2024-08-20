@@ -48,4 +48,9 @@ public class InputNode : Node
     {
         return output is null ? [] : [output];
     }
+
+    public override string ToString()
+    {
+        return "InputNode";
+    }
 }

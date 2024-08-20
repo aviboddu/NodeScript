@@ -7,36 +7,32 @@ namespace NodeScriptBenchmark
     [ShortRunJob]
     public class Benchmark
     {
-        private readonly string code;
-        private readonly InputNode input;
-        private readonly RegularNode regular;
-        private readonly OutputNode output;
+        private readonly Script script;
 
         public Benchmark()
         {
             string input_data = File.ReadAllText("../../../../../../../TestData/LongestString.in");
-            code = File.ReadAllText("../../../../../../../TestData/LongestString.ns");
-            output = new();
-            regular = NodeFactory.CreateRegularNode(code, Program.CompileErrorHandler, Program.RuntimeErrorHandler, [output])!;
-            input = new(input_data, regular);
+            string code = File.ReadAllText("../../../../../../../TestData/LongestString.ns");
+            script = new();
+            int input_id = script.AddInputNode(input_data);
+            int node_id = script.AddRegularNode(code);
+            int output_id = script.AddOutputNode();
+            script.ConnectNodes(input_id, node_id);
+            script.ConnectNodes(node_id, output_id);
+            script.CompileNodes();
         }
 
         [Benchmark]
         public void Compile()
         {
-            RegularNode? node = NodeFactory.CreateRegularNode(code, Program.CompileErrorHandler, Program.RuntimeErrorHandler);
+            script.CompileNodes();
         }
 
         [Benchmark]
         public void Execute()
         {
-            while (input.State == NodeState.RUNNING || regular.State == NodeState.RUNNING)
-            {
-                input.StepLine();
-                regular.StepLine();
-            }
-            input.Reset();
-            output.Reset();
+            script.Run();
+            script.Reset();
         }
     }
 

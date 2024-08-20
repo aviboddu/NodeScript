@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using NodeScript;
 
 namespace NodeScriptTest;
@@ -10,23 +11,18 @@ public class Test(string testName)
     public void RunTest()
     {
         string expectedOutput = File.ReadAllText(filePath + ".out");
-        (InputNode inputNode, RegularNode regularNode, OutputNode outputNode) = DummyNodeFactory.CreateNodePath(filePath + ".in", filePath + ".ns", CompileError, RuntimeError);
-        while (inputNode.State == NodeState.RUNNING || regularNode.State == NodeState.RUNNING)
-        {
-            inputNode.StepLine();
-            regularNode.StepLine();
-        }
-        Assert.AreEqual(expectedOutput, outputNode.Output);
-    }
+        Script script = new();
+        int input_id = script.AddInputNode(File.ReadAllText(filePath + ".in"));
+        int node_id = script.AddRegularNode(File.ReadAllText(filePath + ".ns"));
+        int output_id = script.AddOutputNode();
+        script.ConnectNodes(input_id, node_id);
+        script.ConnectNodes(node_id, output_id);
 
-    private void CompileError(int line, string message)
-    {
-        Console.Error.WriteLine($"Compile error at line {line}: {message}");
-    }
+        script.CompileNodes();
+        script.Run();
 
-    private void RuntimeError(Node node, int line, string message)
-    {
-        Console.Error.WriteLine($"Runtime error at line {line}: {message}");
+        string actualOutput = ((OutputNode)script.Nodes[output_id]).Output;
+        Assert.AreEqual(expectedOutput, actualOutput);
     }
 
 }

@@ -172,8 +172,15 @@ public class Script
             if (id < 0 || id > nodesData.Count) throw new ArgumentException($"id {id} is out of range");
     }
 
-    public void Error(int id, int line, string message) { }
-    public void RuntimeError(Node node, int line, string message) { }
+    public void Error(int id, int line, string message)
+    {
+        Console.Error.WriteLine($"Compile error for node {id} at line {line}: {message}");
+    }
+
+    public void RuntimeError(Node node, int line, string message)
+    {
+        Console.Error.WriteLine($"Runtime error for node {node} at line {line}: {message}");
+    }
 
     private abstract class NodeData(int[]? Outputs = null)
     {

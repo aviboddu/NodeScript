@@ -33,4 +33,9 @@ public class CombinerNode(Node? output) : Node
     {
         return output is null ? [] : [output];
     }
+
+    public override string ToString()
+    {
+        return "CombinerNode";
+    }
 }

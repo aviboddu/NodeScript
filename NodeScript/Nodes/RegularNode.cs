@@ -353,4 +353,9 @@ public class RegularNode : Node
         panic = true;
         runtimeError.Invoke(this, GetLine(nextInstruction - 1), message);
     }
+
+    public override string ToString()
+    {
+        return "RegularNode";
+    }
 }
