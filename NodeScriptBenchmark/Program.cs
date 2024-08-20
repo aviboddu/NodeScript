@@ -17,14 +17,14 @@ namespace NodeScriptBenchmark
             string input_data = File.ReadAllText("../../../../../../../TestData/LongestString.in");
             code = File.ReadAllText("../../../../../../../TestData/LongestString.ns");
             output = new();
-            regular = NodeFactory.CreateRegularNode(code, [output], Program.CompileErrorHandler, Program.RuntimeErrorHandler)!;
+            regular = NodeFactory.CreateRegularNode(code, Program.CompileErrorHandler, Program.RuntimeErrorHandler, [output])!;
             input = new(input_data, regular);
         }
 
         [Benchmark]
         public void Compile()
         {
-            RegularNode? node = NodeFactory.CreateRegularNode(code, [], Program.CompileErrorHandler, Program.RuntimeErrorHandler);
+            RegularNode? node = NodeFactory.CreateRegularNode(code, Program.CompileErrorHandler, Program.RuntimeErrorHandler);
         }
 
         [Benchmark]
