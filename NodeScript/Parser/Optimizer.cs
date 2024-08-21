@@ -5,7 +5,7 @@ using static TokenType;
 
 public static class Optimizer
 {
-    public static void PropogateConstants(Operation?[] operations, CompileErrorHandler errorHandler)
+    public static void PropogateConstants(Operation?[] operations, InternalErrorHandler errorHandler)
     {
         for (int currentLine = 0; currentLine < operations.Length; currentLine++)
         {
@@ -17,9 +17,9 @@ public static class Optimizer
         }
     }
 
-    private class ExpressionOptimizer(CompileErrorHandler errorHandler, int lineNo) : Expr.IVisitor<Expr>
+    private class ExpressionOptimizer(InternalErrorHandler errorHandler, int lineNo) : Expr.IVisitor<Expr>
     {
-        private readonly CompileErrorHandler errorHandler = errorHandler;
+        private readonly InternalErrorHandler errorHandler = errorHandler;
 
         public Expr VisitBinaryExpr(Binary expr)
         {

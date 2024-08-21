@@ -1,6 +1,7 @@
 namespace NodeScript;
 
 using System.Diagnostics;
+using static NodeScript.CompilerUtils;
 using static OpCode;
 
 [DebuggerDisplay("nextInstruction = {nextInstruction, nq}, stack = {stack, nq}")]
@@ -9,7 +10,7 @@ public class RegularNode : Node
     private static readonly string[] globalVars = ["input", "mem"];
 
     public Node[]? outputs;
-    private readonly ErrorHandler runtimeError;
+    private readonly InternalErrorHandler runtimeError;
 
     private readonly byte[] code;
     private readonly object[] constants;
@@ -20,7 +21,7 @@ public class RegularNode : Node
     private int nextInstruction = 0;
     private bool panic = false;
 
-    public RegularNode(byte[] code, object[] constants, int[] lines, ErrorHandler runtimeError, Node[]? outputs = null)
+    public RegularNode(byte[] code, object[] constants, int[] lines, InternalErrorHandler runtimeError, Node[]? outputs = null)
     {
         this.code = code;
         this.constants = constants;
@@ -351,7 +352,7 @@ public class RegularNode : Node
     {
         State = NodeState.IDLE;
         panic = true;
-        runtimeError.Invoke(this, GetLine(nextInstruction - 1), message);
+        runtimeError.Invoke(GetLine(nextInstruction - 1), message);
     }
 
     public override string ToString()

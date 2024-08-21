@@ -13,7 +13,8 @@ namespace NodeScriptBenchmark
         {
             string input_data = File.ReadAllText("../../../../../../../TestData/LongestString.in");
             string code = File.ReadAllText("../../../../../../../TestData/LongestString.ns");
-            script = new();
+            script = new(CompileError, RuntimeError);
+
             int input_id = script.AddInputNode(input_data);
             int node_id = script.AddRegularNode(code);
             int output_id = script.AddOutputNode();
@@ -33,6 +34,16 @@ namespace NodeScriptBenchmark
         {
             script.Run();
             script.Reset();
+        }
+
+        private static void CompileError(int id, int line, string message)
+        {
+            Console.WriteLine($"Compilation error at node {id}, line {line}: {message}");
+        }
+
+        private static void RuntimeError(int id, int line, string message)
+        {
+            Console.WriteLine($"Runtime error at node {id}, line {line}: {message}");
         }
     }
 

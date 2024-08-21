@@ -6,7 +6,7 @@ using static TokenType;
 
 public static class Validator
 {
-    public static void Validate(Operation?[] operations, CompileErrorHandler errorHandler)
+    public static void Validate(Operation?[] operations, InternalErrorHandler errorHandler)
     {
         int ifEndif = 0;
         for (int i = 0; i < operations.Length; i++)
@@ -131,7 +131,7 @@ public static class Validator
         return output;
     }
 
-    private class TypeInferer(Dictionary<string, Type> variableTypes, CompileErrorHandler errorHandler, int lineNo) : Expr.IVisitor<Type>
+    private class TypeInferer(Dictionary<string, Type> variableTypes, InternalErrorHandler errorHandler, int lineNo) : Expr.IVisitor<Type>
     {
         private readonly Dictionary<string, Type> variableTypes = variableTypes;
 
@@ -243,9 +243,9 @@ public static class Validator
         }
     }
 
-    private class TypeValidator(CompileErrorHandler errorHandler, int lineNo) : Expr.IVisitor<bool>
+    private class TypeValidator(InternalErrorHandler errorHandler, int lineNo) : Expr.IVisitor<bool>
     {
-        private readonly CompileErrorHandler errorHandler = errorHandler;
+        private readonly InternalErrorHandler errorHandler = errorHandler;
 
         public bool VisitBinaryExpr(Binary expr)
         {
@@ -324,9 +324,9 @@ public static class Validator
         public bool VisitVariableExpr(Variable expr) => true;
     }
 
-    private class ExpressionValidator(CompileErrorHandler errorHandler, int lineNo) : Expr.IVisitor<bool>
+    private class ExpressionValidator(InternalErrorHandler errorHandler, int lineNo) : Expr.IVisitor<bool>
     {
-        private readonly CompileErrorHandler errorHandler = errorHandler;
+        private readonly InternalErrorHandler errorHandler = errorHandler;
 
         public bool VisitBinaryExpr(Binary expr) => expr.Left.Accept(this) & expr.Right.Accept(this);
 

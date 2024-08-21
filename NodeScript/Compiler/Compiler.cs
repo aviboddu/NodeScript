@@ -7,10 +7,10 @@ using static CompilerUtils;
 using System.Text;
 
 [DebuggerDisplay("currentLine = {currentLine, nq}")]
-public class Compiler(Operation?[] operations, CompileErrorHandler errorHandler)
+public class Compiler(Operation?[] operations, InternalErrorHandler errorHandler)
 {
     private readonly Operation?[] operations = operations;
-    private CompileErrorHandler errorHandler = errorHandler;
+    private InternalErrorHandler errorHandler = errorHandler;
     private int currentLine = 0;
 
     public (byte[] code, object[] constants, int[] lines) Compile()

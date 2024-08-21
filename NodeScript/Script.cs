@@ -1,11 +1,22 @@
+using static NodeScript.CompilerUtils;
+
 namespace NodeScript;
 
-// TODO: Expand Compile and Runtime error handling
 public class Script
 {
     private readonly List<NodeData> nodesData = [];
     public Node[] Nodes { get; private set; } = [];
     private Node[] NodesToExecute = [];
+
+    public ErrorHandler? CompileError;
+    public ErrorHandler? RuntimeError;
+
+    public Script() { }
+    public Script(ErrorHandler compileError, ErrorHandler runtimeError)
+    {
+        CompileError += compileError;
+        RuntimeError += runtimeError;
+    }
 
     public int AddInputNode(string inputData)
     {
@@ -139,7 +150,7 @@ public class Script
                 Nodes[id] = NodeFactory.CreateInputNode(i.InputData);
                 break;
             case RegularNodeData r:
-                RegularNode? regularNode = NodeFactory.CreateRegularNode(r.Code, (line, msg) => Error(id, line, msg), RuntimeError);
+                RegularNode? regularNode = NodeFactory.CreateRegularNode(r.Code, BindErrorHandler(CompileError, id), BindErrorHandler(RuntimeError, id));
                 if (regularNode is null) return false;
                 Nodes[id] = regularNode;
                 break;
@@ -172,16 +183,6 @@ public class Script
             if (id < 0 || id > nodesData.Count) throw new ArgumentException($"id {id} is out of range");
     }
 
-    public void Error(int id, int line, string message)
-    {
-        Console.Error.WriteLine($"Compile error for node {id} at line {line}: {message}");
-    }
-
-    public void RuntimeError(Node node, int line, string message)
-    {
-        Console.Error.WriteLine($"Runtime error for node {node} at line {line}: {message}");
-    }
-
     private abstract class NodeData(int[]? Outputs = null)
     {
         public int[]? Outputs = Outputs;
@@ -199,6 +200,11 @@ public class Script
     {
         public string Code = Code;
     }
+
+    private static InternalErrorHandler BindErrorHandler(ErrorHandler? handler, int id)
+    {
+        return (int line, string message) => handler?.Invoke(id, line, message);
+    }
 }
 
-public delegate void ErrorHandler(Node node, int line, string message);
+public delegate void ErrorHandler(int node_id, int line, string message);

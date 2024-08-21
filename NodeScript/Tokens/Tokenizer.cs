@@ -6,9 +6,9 @@ using System.Diagnostics;
 
 
 [DebuggerDisplay("start = {start, nq}, current = {current, nq}, line = {line, nq}")]
-public class Tokenizer(string source, CompileErrorHandler compileError)
+public class Tokenizer(string source, InternalErrorHandler compileError)
 {
-    private readonly CompileErrorHandler compileError = compileError;
+    private readonly InternalErrorHandler compileError = compileError;
     private readonly string source = source;
     private readonly List<List<Token>> tokens = [];
 

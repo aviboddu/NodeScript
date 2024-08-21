@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Security.Cryptography;
 using NodeScript;
 
@@ -11,7 +12,8 @@ public class Test(string testName)
     public void RunTest()
     {
         string expectedOutput = File.ReadAllText(filePath + ".out");
-        Script script = new();
+        Script script = new(CompileError, RuntimeError);
+
         int input_id = script.AddInputNode(File.ReadAllText(filePath + ".in"));
         int node_id = script.AddRegularNode(File.ReadAllText(filePath + ".ns"));
         int output_id = script.AddOutputNode();
@@ -23,6 +25,16 @@ public class Test(string testName)
 
         string actualOutput = ((OutputNode)script.Nodes[output_id]).Output;
         Assert.AreEqual(expectedOutput, actualOutput);
+    }
+
+    private static void CompileError(int id, int line, string message)
+    {
+        Debug.WriteLine($"Compilation error at node {id}, line {line}: {message}");
+    }
+
+    private static void RuntimeError(int id, int line, string message)
+    {
+        Debug.WriteLine($"Runtime error at node {id}, line {line}: {message}");
     }
 
 }
