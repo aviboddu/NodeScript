@@ -2,22 +2,47 @@ using static NodeScript.CompilerUtils;
 
 namespace NodeScript;
 
+/**
+<summary> A set of nodes makes up a Script. This includes input and output nodes. </summary>
+*/
 public class Script
 {
     private readonly List<NodeData> nodesData = [];
-    internal Node[] Nodes { get; private set; } = [];
+    private Node[] Nodes = [];
     private Node[] NodesToExecute = [];
 
+    /// <summary>
+    /// Callback for compilation errors. 
+    /// </summary>
     public ErrorHandler? CompileError;
+
+    /// <summary>
+    /// Callback for runtime errors.
+    /// </summary>
     public ErrorHandler? RuntimeError;
 
+    /// <summary>
+    /// Creates an empty script
+    /// </summary>
     public Script() { }
+
+    /// <summary>
+    /// Creates an empty script
+    /// </summary>
+    /// <param name="compileError">Callback for compilation errors.</param>
+    /// <param name="runtimeError">Callback for runtime errors.</param>
     public Script(ErrorHandler compileError, ErrorHandler runtimeError)
     {
         CompileError += compileError;
         RuntimeError += runtimeError;
     }
 
+    /// <summary>
+    /// Adds an input node to the script with the given <paramref name="inputData"/>. The input node will send one line of data at a time.
+    /// </summary>
+    /// <param name="inputData">A string containing all input data</param>
+    /// <returns>A non-negative ID.</returns>
+    /// <exception cref="ArgumentException">Thrown if the script already has an input node. Each script can only have one input node. </exception>
     public int AddInputNode(string inputData)
     {
         if (nodesData.Any(x => x is InputNodeData))
@@ -26,6 +51,11 @@ public class Script
         return nodesData.Count - 1;
     }
 
+    /// <summary>
+    /// Adds an output node to the script. The output node will store all data sent to it.
+    /// </summary>
+    /// <returns>A non-negative ID.</returns>
+    /// <exception cref="ArgumentException">Thrown if the script already has an output node. Each script can only have one output node. </exception>
     public int AddOutputNode()
     {
         if (nodesData.Any(x => x is OutputNodeData))
@@ -34,18 +64,33 @@ public class Script
         return nodesData.Count - 1;
     }
 
+    /// <summary>
+    /// Adds a combiner node to the script. A combiner node can receive multiple inputs and send a single output.
+    /// </summary>
+    /// <returns>A non-negative ID.</returns>
     public int AddCombinerNode()
     {
         nodesData.Add(new CombinerNodeData());
         return nodesData.Count - 1;
     }
 
+    /// <summary>
+    /// Adds a regular node to the script. A regular node will execute the given <paramref name="code"/> line-by-line, receiving and sending output accordingly.
+    /// </summary>
+    /// <param name="code">The code to compile and run.</param>
+    /// <returns>A non-negative ID.</returns>
     public int AddRegularNode(string code)
     {
         nodesData.Add(new RegularNodeData(code));
         return nodesData.Count - 1;
     }
 
+    /// <summary>
+    /// Connects two nodes in a script. The first node sends its output to the second node.
+    /// </summary>
+    /// <param name="nodeId">The first node to connect</param>
+    /// <param name="outputId">The second node to connect</param>
+    /// <exception cref="ArgumentException">Thrown if the connection is invalid, such as trying to connect a node to itself or trying to output to an input node</exception>
     public void ConnectNodes(int nodeId, int outputId)
     {
         ValidateIds(nodeId, outputId);
@@ -72,6 +117,12 @@ public class Script
         }
     }
 
+    /// <summary>
+    /// Updates the data for a particular node. This node can either be an input node (updating the input data) or a regular node (updating the code)
+    /// </summary>
+    /// <param name="id">The id of the node to be updated</param>
+    /// <param name="newData">Either the new input data or the new code</param>
+    /// <exception cref="ArgumentException">Thrown if the identified node is not an input or regular node, or if the <paramref name="id"/> is invalid</exception>
     public void UpdateData(int id, string newData)
     {
         ValidateIds(id);
@@ -89,6 +140,11 @@ public class Script
         }
     }
 
+    /// <summary>
+    /// Attempts to compile all nodes.
+    /// </summary>
+    /// <returns><c>true</c> if compilation was successful or <c>false</c> otherwise</returns>
+    /// <exception cref="InvalidOperationException">Thrown if there is no input node.</exception> 
     public bool CompileNodes()
     {
         Nodes = new Node[nodesData.Count];
@@ -115,12 +171,18 @@ public class Script
         return true;
     }
 
+    /// <summary>
+    /// Resets all nodes to their initial state.
+    /// </summary>
     public void Reset()
     {
         foreach (Node node in NodesToExecute)
             node.Reset();
     }
 
+    /// <summary>
+    /// Runs the script in its entirety.
+    /// </summary>
     public void Run()
     {
         do
@@ -129,24 +191,37 @@ public class Script
         } while (NodesToExecute.Any(n => n.State == NodeState.RUNNING));
     }
 
+    /// <summary>
+    /// Runs the script for a single cycle.
+    /// </summary>
     public void StepLine()
     {
         foreach (Node node in NodesToExecute)
             node.StepLine();
     }
 
+    /// <summary>
+    /// Provides the current output in the output node
+    /// </summary>
+    /// <returns>All the output data, or <c>null</c> if there is no output node.</returns>
     public string? GetOutput()
     {
         OutputNode? outputNode = Nodes.OfType<OutputNode>().SingleOrDefault();
         return outputNode?.Output;
     }
 
+    /// <summary>
+    /// Gets the current line of the identified regular node.
+    /// </summary>
+    /// <param name="node_id">The ID of the node.</param>
+    /// <returns>The current line of the identified node.</returns>
+    /// <exception cref="ArgumentException">Thrown if the identified node is not a regular node.</exception>
     public int GetCurrentLine(int node_id)
     {
         ValidateIds(node_id);
         if (Nodes[node_id] is RegularNode r)
             return r.GetCurrentLine();
-        return -1;
+        throw new ArgumentException("Node must be a regular node.");
     }
 
     private bool CompileNode(int id)
