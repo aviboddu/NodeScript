@@ -6,7 +6,7 @@ using System.Diagnostics;
 
 
 [DebuggerDisplay("start = {start, nq}, current = {current, nq}, line = {line, nq}")]
-public class Tokenizer(string source, InternalErrorHandler compileError)
+internal class Tokenizer(string source, InternalErrorHandler compileError)
 {
     private readonly InternalErrorHandler compileError = compileError;
     private readonly string source = source;

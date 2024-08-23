@@ -2,7 +2,7 @@ namespace NodeScript;
 
 using static CompilerUtils;
 
-public static class NodeFactory
+internal static class NodeFactory
 {
     public static InputNode CreateInputNode(string inputData) => new(inputData);
     public static CombinerNode CreateCombinerNode(Node? output = null) => new(output);

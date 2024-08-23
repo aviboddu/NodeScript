@@ -22,9 +22,7 @@ public class Test(string testName)
 
         script.CompileNodes();
         script.Run();
-
-        string actualOutput = ((OutputNode)script.Nodes[output_id]).Output;
-        Assert.AreEqual(expectedOutput, actualOutput);
+        Assert.AreEqual(expectedOutput, script.GetOutput());
     }
 
     private static void CompileError(int id, int line, string message)

@@ -3,7 +3,9 @@ namespace NodeScript;
 using System.Collections.Frozen;
 using static CompilerUtils;
 
-public static class NativeFuncs
+internal delegate Result NativeDelegate(Span<object> parameters);
+
+internal static class NativeFuncs
 {
     public static readonly FrozenDictionary<string, NativeDelegate> NativeFunctions = GetMethods(typeof(NativeFuncs));
     public static readonly FrozenDictionary<string, Type> NativeReturnTypes = GetReturnTypes(typeof(NativeFuncs));
@@ -120,5 +122,3 @@ public static class NativeFuncs
         return Result<string[]>.Ok([.. list]);
     }
 }
-
-public delegate Result NativeDelegate(Span<object> parameters);

@@ -3,7 +3,7 @@ using System.Diagnostics;
 namespace NodeScript;
 
 [DebuggerDisplay("stringReader = {input}")]
-public class InputNode : Node
+internal class InputNode : Node
 {
     public Node? output;
 

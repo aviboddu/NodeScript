@@ -5,7 +5,7 @@ using static CompilerUtils;
 using System.Diagnostics;
 
 [DebuggerDisplay("currentLine = {currentLine, nq}, currentToken = {currentToken, nq}")]
-public class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
+internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
 {
     private readonly InternalErrorHandler errorHandler = errorHandler;
     private readonly Token[][] tokens = tokens;

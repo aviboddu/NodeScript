@@ -3,7 +3,7 @@ namespace NodeScript;
 using static NodeScript.CompilerUtils;
 using static TokenType;
 
-public static class Optimizer
+internal static class Optimizer
 {
     public static void PropogateConstants(Operation?[] operations, InternalErrorHandler errorHandler)
     {

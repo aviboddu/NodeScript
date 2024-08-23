@@ -4,7 +4,7 @@ using System.Text;
 using static CompilerUtils;
 using static TokenType;
 
-public static class Validator
+internal static class Validator
 {
     public static void Validate(Operation?[] operations, InternalErrorHandler errorHandler)
     {

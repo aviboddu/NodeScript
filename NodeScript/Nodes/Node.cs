@@ -1,6 +1,6 @@
 ﻿namespace NodeScript;
 
-public abstract class Node
+internal abstract class Node
 {
     public NodeState State { get; protected set; } = NodeState.IDLE;
 

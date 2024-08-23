@@ -1,6 +1,6 @@
 namespace NodeScript;
 
-public enum OpCode : byte
+internal enum OpCode : byte
 {
     CONSTANT,
     TRUE,

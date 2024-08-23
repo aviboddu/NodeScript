@@ -7,7 +7,7 @@ using static CompilerUtils;
 using System.Text;
 
 [DebuggerDisplay("currentLine = {currentLine, nq}")]
-public class Compiler(Operation?[] operations, InternalErrorHandler errorHandler)
+internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandler)
 {
     private readonly Operation?[] operations = operations;
     private InternalErrorHandler errorHandler = errorHandler;

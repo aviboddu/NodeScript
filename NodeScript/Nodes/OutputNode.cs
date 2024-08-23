@@ -4,7 +4,7 @@ using System.Text;
 namespace NodeScript;
 
 [DebuggerDisplay("output={output}")]
-public class OutputNode : Node
+internal class OutputNode : Node
 {
     private readonly StringBuilder outputBuilder = new();
     public string Output => outputBuilder.ToString();

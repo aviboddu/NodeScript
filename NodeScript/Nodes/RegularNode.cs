@@ -5,7 +5,7 @@ using static NodeScript.CompilerUtils;
 using static OpCode;
 
 [DebuggerDisplay("nextInstruction = {nextInstruction, nq}, stack = {stack, nq}")]
-public class RegularNode : Node
+internal class RegularNode : Node
 {
     private static readonly string[] globalVars = ["input", "mem"];
 
@@ -52,6 +52,8 @@ public class RegularNode : Node
 
         return result;
     }
+
+    public int GetCurrentLine() => GetLine(nextInstruction - 1);
 
     private int GetLine(int instruction)
     {

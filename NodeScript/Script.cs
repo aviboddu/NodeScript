@@ -5,7 +5,7 @@ namespace NodeScript;
 public class Script
 {
     private readonly List<NodeData> nodesData = [];
-    public Node[] Nodes { get; private set; } = [];
+    internal Node[] Nodes { get; private set; } = [];
     private Node[] NodesToExecute = [];
 
     public ErrorHandler? CompileError;
@@ -133,6 +133,20 @@ public class Script
     {
         foreach (Node node in NodesToExecute)
             node.StepLine();
+    }
+
+    public string? GetOutput()
+    {
+        OutputNode? outputNode = Nodes.OfType<OutputNode>().SingleOrDefault();
+        return outputNode?.Output;
+    }
+
+    public int GetCurrentLine(int node_id)
+    {
+        ValidateIds(node_id);
+        if (Nodes[node_id] is RegularNode r)
+            return r.GetCurrentLine();
+        return -1;
     }
 
     private bool CompileNode(int id)

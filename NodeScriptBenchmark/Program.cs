@@ -49,19 +49,9 @@ namespace NodeScriptBenchmark
 
     public class Program
     {
-        public static void Main(string[] args)
+        public static void Main()
         {
-            var summary = BenchmarkRunner.Run<Benchmark>();
-        }
-
-        public static void CompileErrorHandler(int line, string msg)
-        {
-            Console.Error.WriteLine($"Error at line {line}: {msg}");
-        }
-
-        public static void RuntimeErrorHandler(Node _, int line, string msg)
-        {
-            Console.Error.WriteLine($"Error at line {line}: {msg}");
+            BenchmarkRunner.Run<Benchmark>();
         }
     }
 }

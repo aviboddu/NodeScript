@@ -3,7 +3,7 @@ namespace NodeScript;
 using System.Reflection;
 using System.Reflection.Emit;
 
-public static class StackExtensions
+internal static class StackExtensions
 {
     static class ArrayAccessor<T>
     {

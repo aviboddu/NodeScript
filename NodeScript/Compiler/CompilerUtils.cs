@@ -3,7 +3,7 @@ using System.Reflection;
 
 namespace NodeScript;
 
-public static class CompilerUtils
+internal static class CompilerUtils
 {
     public delegate void InternalErrorHandler(int line, string message);
 

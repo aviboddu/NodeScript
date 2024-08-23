@@ -1,6 +1,6 @@
 namespace NodeScript;
 
-public class Token(TokenType type, int start, int end, object? literal, string code)
+internal class Token(TokenType type, int start, int end, object? literal, string code)
 {
     public readonly TokenType type = type;
     private readonly int start = start;
@@ -9,7 +9,7 @@ public class Token(TokenType type, int start, int end, object? literal, string c
     public ReadOnlySpan<char> Lexeme => code.AsSpan(start, end - start);
 }
 
-public enum TokenType : byte
+internal enum TokenType : byte
 {
     LEFT_PAREN, RIGHT_PAREN, LEFT_SQUARE, RIGHT_SQUARE,
     COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR, COLON,

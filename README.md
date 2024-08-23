@@ -20,7 +20,6 @@ NodeScript is a rudimentary programming language designed to function on 'nodes'
 - Native functions for things like:
     - String manipulation
     - Data conversion and parsing
-    - Indexing and slicing
 - Dynamic typing between:
     - string
     - string[]

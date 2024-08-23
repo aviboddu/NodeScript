@@ -1,13 +1,13 @@
 namespace NodeScript;
 
-public abstract class Result(string? message = null)
+internal abstract class Result(string? message = null)
 {
     public abstract object? GetValue();
     public readonly string? message = message;
     public abstract bool Success();
 }
 
-public class Result<T> : Result
+internal class Result<T> : Result
 {
     public readonly T? value;
 

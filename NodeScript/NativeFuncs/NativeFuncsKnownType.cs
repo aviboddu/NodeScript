@@ -2,7 +2,7 @@ namespace NodeScript;
 
 using System.Collections.Frozen;
 using static CompilerUtils;
-public static class NativeFuncsKnownType
+internal static class NativeFuncsKnownType
 {
     public static readonly FrozenDictionary<string, NativeDelegate> NativeFunctions = GetMethods(typeof(NativeFuncsKnownType));
     public static readonly FrozenDictionary<string, Type> NativeReturnTypes = GetReturnTypes(typeof(NativeFuncsKnownType));
