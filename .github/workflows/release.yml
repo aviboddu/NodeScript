@@ -20,9 +20,7 @@ jobs:
           uses: actions/setup-dotnet@v4
           with:
             dotnet-version: 8.0.x
-        - name: Change directory
-          run: cd /home/runner/work/NodeScript/NodeScript/
         - name: Package
-          run: dotnet pack ./NodeScript -c Release -p:Version=${{ inputs.VERSION }} -p:PackageReleaseNotes=${{inputs.release-notes}}
+          run: dotnet pack ./NodeScript -c Release -p:Version=${{ inputs.VERSION }} -p:PackageReleaseNotes="${{inputs.release-notes}}"
         - name: Publish
           run: dotnet nuget push ./NodeScript/bin/Release/ -k ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
