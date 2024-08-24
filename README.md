@@ -1,5 +1,5 @@
 # NodeScript
-![.NET](https://github.com/aviboddu/NodeScript/actions/workflows/dotnet.yml/badge.svg?branch=master&event=push) ![Benchmark](https://github.com/aviboddu/NodeScript/actions/workflows/benchmark.yml/badge.svg?branch=master&event=push) ![NuGet Version](https://img.shields.io/nuget/v/NodeScript)
+![Tests](https://github.com/aviboddu/NodeScript/actions/workflows/dotnet.yml/badge.svg?branch=master&event=push) ![Benchmark](https://github.com/aviboddu/NodeScript/actions/workflows/benchmark.yml/badge.svg?branch=master&event=push) ![NuGet Version](https://img.shields.io/nuget/v/NodeScript)
 
 NodeScript is a rudimentary programming language designed to function on 'nodes', intended for use in puzzle games. Find development details [here](./Development.md)
 
