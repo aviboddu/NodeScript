@@ -21,6 +21,6 @@ jobs:
           with:
             dotnet-version: 8.0.x
         - name: Package
-          run: dotnet pack ./NodeScript -c Release -p:Version=${{ inputs.VERSION }} -p:PackageReleaseNotes="${{inputs.release-notes}}"
+          run: dotnet pack ./NodeScript -c Release -p:Version=${{ inputs.version }} -p:PackageReleaseNotes="${{inputs.release-notes}}"
         - name: Publish
-          run: dotnet nuget push ./NodeScript/bin/Release/ -k ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+          run: dotnet nuget push ./NodeScript/bin/Release/NodeScript.${{inputs.version}}.nupkg -k ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
