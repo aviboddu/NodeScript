@@ -5,9 +5,9 @@ NodeScript is a rudimentary programming language designed to function on 'nodes'
 
 ## Nodes
 - Input nodes will continuously attempt to send the next line. It has only one output.
-- Regular nodes can take in one string at a time, process it and send it to a set number of outputs. Each node can store a single object in `mem` and has limited space for code.
-- Combiner nodes can merge 2 pipes into one. It offers no options to choose which string goes through first, picking whatever comes first.
-- Output nodes will consume the lines sent to it, placing it in the output file.
+- Regular nodes can take in one string at a time, process it and send it to a set number of outputs. Each node can store a single string in `mem`. `mem` is the only variable which will persist between executions.
+- Combiner nodes can merge multiple inputs into one output. It offers no options to choose which string goes through first, picking whatever comes first.
+- Output nodes will consume the lines sent to it, storing it in a string.
 
 ## Features
 - Basic arithmetic and boolean logic
@@ -36,5 +36,3 @@ Every line contains a single statement. All statements will start with a relevan
 - IF: Executes the following code if the given expression is true. Syntax `IF <expression>;`
 - ELSE: Executes the following code if the previous if statement was false. Syntax `ELSE;`
 - ENDIF: Marks the end of the IF clause. Either ends the IF code section or the ELSE code section. Only one is needed per IF/ELSE statement. Syntax `ENDIF;`
-
-There are no methods nor is there indexing. Several native functions are available to provide necessary functionality.
