@@ -121,4 +121,12 @@ internal static class NativeFuncs
             list[j - 1] = a[j];
         return Result<string[]>.Ok([.. list]);
     }
+
+    public static Result<string> trim(Span<object> objs)
+    {
+        if (objs.Length != 1) return Result<string>.Fail("trim takes one parameter");
+        if (objs[0] is not string s)
+            return Result<string>.Fail("trim takes in a string");
+        return Result<string>.Ok(s.Trim());
+    }
 }

@@ -102,4 +102,10 @@ internal static class NativeFuncsKnownType
             list[j - 1] = a[j];
         return Result<string[]>.Ok(list);
     }
+
+    public static Result<string> trim_str(Span<object> objs)
+    {
+        string s = (string)objs[0];
+        return Result<string>.Ok(s.Trim());
+    }
 }
