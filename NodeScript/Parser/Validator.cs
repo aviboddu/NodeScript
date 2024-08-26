@@ -26,6 +26,7 @@ internal static class Validator
             foreach (Expr ex in op.expressions)
                 ex.Accept(v);
         }
+        if (ifEndif != 0) errorHandler(operations.Length - 1, "IF statements do not match ENDIF statements");
 
         Stack<(Dictionary<string, Type>, Dictionary<string, Type>)> variableTypes = new();
         variableTypes.Push((new()
