@@ -1,3 +1,4 @@
+#pragma warning disable IDE1006 // Naming Styles
 namespace NodeScript;
 
 using System.Collections.Frozen;
@@ -14,10 +15,11 @@ internal static class NativeFuncs
     {
 
         if (objs.Length != 1) return Result<int>.Fail("length takes exactly one parameter");
+
         return objs[0] switch
         {
-            int n => Result<int>.Fail("Cannot find the length of an integer"),
-            bool b => Result<int>.Fail("Cannot find the length of a boolean"),
+            int => Result<int>.Fail("Cannot find the length of an integer"),
+            bool => Result<int>.Fail("Cannot find the length of a boolean"),
             string s => Result<int>.Ok(s.Length),
             string[] a => Result<int>.Ok(a.Length),
             _ => Result<int>.Fail("Unknown parameter"),
@@ -28,9 +30,8 @@ internal static class NativeFuncs
     {
         if (objs.Length != 2) return Result<string[]>.Fail("split takes two parameters");
         if (objs[0] is not string || objs[1] is not string)
-        {
             return Result<string[]>.Fail("Both parameters for split must be a string");
-        }
+
         string separator = (string)objs[0];
         string s = (string)objs[1];
         return Result<string[]>.Ok(s.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
@@ -40,9 +41,8 @@ internal static class NativeFuncs
     {
         if (objs.Length != 2) return Result<string>.Fail("join takes two parameters");
         if (objs[0] is not string || objs[1] is not string[])
-        {
             return Result<string>.Fail("join takes one string and one string array");
-        }
+
         string separator = (string)objs[0];
         string[] s = (string[])objs[1];
         return Result<string>.Ok(string.Join(separator, s));
@@ -52,9 +52,8 @@ internal static class NativeFuncs
     {
         if (objs.Length != 2) return Result<int>.Fail("index_of takes two parameters");
         if (objs[0] is not string || objs[1] is not string)
-        {
             return Result<int>.Fail("index_of takes two strings");
-        }
+
         string search = (string)objs[0];
         string s = (string)objs[1];
         return Result<int>.Ok(s.IndexOf(search));
@@ -77,9 +76,8 @@ internal static class NativeFuncs
     {
         if (objs.Length != 2) return Result<string>.Fail("element_at takes two parameters");
         if (!(objs[0] is string || objs[0] is string[]) || objs[1] is not int)
-        {
             return Result<string>.Fail("element_at takes one string or string array and one int");
-        }
+
         int idx = (int)objs[1];
         if (objs[0] is string s)
             return Result<string>.Ok(s[idx].ToString());

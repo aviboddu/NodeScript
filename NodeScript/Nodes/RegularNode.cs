@@ -7,8 +7,6 @@ using static OpCode;
 [DebuggerDisplay("nextInstruction = {nextInstruction, nq}, stack = {stack, nq}")]
 internal class RegularNode : Node
 {
-    private static readonly string[] globalVars = ["input", "mem"];
-
     public Node[]? outputs;
     private readonly InternalErrorHandler runtimeError;
 

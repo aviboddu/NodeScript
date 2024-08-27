@@ -8,6 +8,7 @@ internal static class Validator
 {
     public static void Validate(Operation?[] operations, InternalErrorHandler errorHandler)
     {
+        // Validating IF and ENDIF statements as well as validating native function calls
         int ifEndif = 0;
         for (int i = 0; i < operations.Length; i++)
         {
@@ -28,6 +29,7 @@ internal static class Validator
         }
         if (ifEndif != 0) errorHandler(operations.Length - 1, "IF statements do not match ENDIF statements");
 
+        // Inferring types
         Stack<(Dictionary<string, Type>, Dictionary<string, Type>)> variableTypes = new();
         variableTypes.Push((new()
         {
@@ -77,6 +79,7 @@ internal static class Validator
                 ex.Accept(typeInferer);
         }
 
+        // Validating types
         for (int i = 0; i < operations.Length; i++)
         {
             if (operations[i] is null) continue;
@@ -90,13 +93,13 @@ internal static class Validator
             switch (op.operation)
             {
                 case PRINT:
-                    if (!IsType(op.expressions[0].Type, typeof(int)) || !IsType(op.expressions[1].Type, typeof(string)))
+                    if (!IsTypeOrObj(op.expressions[0].Type, typeof(int)) || !IsTypeOrObj(op.expressions[1].Type, typeof(string)))
                         errorHandler(i, $"PRINT must be of the form: PRINT <int>, <string>");
                     break;
                 case SET:
                     string variableName = ((Variable)op.expressions[0]).Name.Lexeme.ToString();
                     if (variableName == "input" || variableName == "mem")
-                        if (!IsType(op.expressions[1].Type, typeof(string)))
+                        if (!IsTypeOrObj(op.expressions[1].Type, typeof(string)))
                             errorHandler(i, $"{variableName} must be set to a string");
                     break;
             }
@@ -263,12 +266,12 @@ internal static class Validator
                 case STAR:
                 case MINUS:
                 case SLASH:
-                    return valid && IsType(expr.Left.Type, typeof(int)) && IsType(expr.Right.Type, typeof(int));
+                    return valid && IsTypeOrObj(expr.Left.Type, typeof(int)) && IsTypeOrObj(expr.Right.Type, typeof(int));
                 case AND:
                 case OR:
-                    return valid && IsType(expr.Left.Type, typeof(bool)) && IsType(expr.Right.Type, typeof(bool));
+                    return valid && IsTypeOrObj(expr.Left.Type, typeof(bool)) && IsTypeOrObj(expr.Right.Type, typeof(bool));
                 case PLUS:
-                    return valid && IsType(expr.Left.Type, expr.Type) && IsType(expr.Right.Type, expr.Type);
+                    return valid && IsTypeOrObj(expr.Left.Type, expr.Type) && IsTypeOrObj(expr.Right.Type, expr.Type);
                 default: return false;
             }
         }
@@ -286,7 +289,7 @@ internal static class Validator
         public bool VisitIndexExpr(Index expr)
         {
             bool valid = expr.Arguments.All(e => e.Accept(this));
-            if (!expr.Arguments.All(e => IsType(e.Type, typeof(int))))
+            if (!expr.Arguments.All(e => IsTypeOrObj(e.Type, typeof(int))))
             {
                 errorHandler(lineNo, $"Cannot index with non-integer type");
                 return false;
@@ -305,14 +308,14 @@ internal static class Validator
             switch (expr.Op.type)
             {
                 case MINUS:
-                    if (!IsType(expr.Right.Type, typeof(int)))
+                    if (!IsTypeOrObj(expr.Right.Type, typeof(int)))
                     {
                         errorHandler(lineNo, $"Cannot negate type {expr.Right.Type}");
                         return false;
                     }
                     return valid;
                 case BANG:
-                    if (!IsType(expr.Right.Type, typeof(bool)))
+                    if (!IsTypeOrObj(expr.Right.Type, typeof(bool)))
                     {
                         errorHandler(lineNo, $"Cannot not type {expr.Right.Type}");
                         return false;

@@ -5,7 +5,7 @@ namespace NodeScript;
 
 /**
 <summary> A set of nodes makes up a Script. This includes input and output nodes. </summary>
-<remarks> Serialization will only store node data. User must recompile and reconnect error handlers </remarks>
+<remarks> Serialization will only store node data. User must reconnect error handlers and recompile. </remarks>
 */
 public class Script()
 {

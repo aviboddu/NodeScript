@@ -7,8 +7,9 @@ internal static class CompilerUtils
 {
     public delegate void InternalErrorHandler(int line, string message);
 
-    public static bool IsType(Type testType, Type compareType) => testType == compareType || testType == typeof(object);
+    public static bool IsTypeOrObj(Type testType, Type compareType) => testType == compareType || testType == typeof(object);
 
+    // This method is used for native functions. It creates a dictionary mapping the function names to the delegate.
     public static FrozenDictionary<string, NativeDelegate> GetMethods(Type type)
     {
         MethodInfo[] nativeFuncs = type.GetMethods(BindingFlags.Static | BindingFlags.DeclaredOnly | BindingFlags.Public);
@@ -19,6 +20,7 @@ internal static class CompilerUtils
         return methods.ToFrozenDictionary();
     }
 
+    // This method is used for native functions. It creates a dictionary mapping the function names to the function's return type.
     public static FrozenDictionary<string, Type> GetReturnTypes(Type type)
     {
         MethodInfo[] nativeFuncs = type.GetMethods(BindingFlags.Static | BindingFlags.DeclaredOnly | BindingFlags.Public);

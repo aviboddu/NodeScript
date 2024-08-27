@@ -34,7 +34,9 @@ internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
     private Operation? ParseLine()
     {
         Operation? op = null;
-        switch (tokens[currentLine][currentToken].type)
+        TokenType commandType = Advance().type;
+        // Create the operation object first
+        switch (commandType)
         {
             case SET: op = new(SET, 2); break;
             case PRINT: op = new(PRINT, 2); break;
@@ -44,10 +46,11 @@ internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
             case RETURN: op = new(RETURN, 0); break;
             case EOF: return null;
             default:
-                errorHandler.Invoke(currentLine, $"Unexpected token {tokens[currentLine][currentToken].type}");
+                errorHandler.Invoke(currentLine, $"Unexpected token {commandType}");
                 return null;
         }
-        currentToken++;
+
+        // Try to parse the required number of expressions
         for (int i = 0; i < op.expressions.Length; i++)
         {
             Expr? expr = Expression();
@@ -55,11 +58,10 @@ internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
 
             op.expressions[i] = expr;
             if (i != op.expressions.Length - 1)
-            {
                 Consume(COMMA, "Expect comma between expressions");
-            }
         }
 
+        // Parse a semicolon to end the line
         if (Consume(SEMICOLON, "Expected semicolon") is null)
         {
             errorHandler.Invoke(currentLine, $"Unexpected token, "
