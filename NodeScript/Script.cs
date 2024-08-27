@@ -1,13 +1,17 @@
+using System.Text.Json.Serialization;
 using static NodeScript.CompilerUtils;
 
 namespace NodeScript;
 
 /**
 <summary> A set of nodes makes up a Script. This includes input and output nodes. </summary>
+<remarks> Serialization will only store node data. User must recompile and reconnect error handlers </remarks>
 */
-public class Script
+public class Script()
 {
+    [JsonInclude, JsonObjectCreationHandling(JsonObjectCreationHandling.Populate)]
     private readonly List<NodeData> nodesData = [];
+
     private Node[] Nodes = [];
     private Node[] NodesToExecute = [];
 
@@ -24,14 +28,9 @@ public class Script
     /// <summary>
     /// Creates an empty script
     /// </summary>
-    public Script() { }
-
-    /// <summary>
-    /// Creates an empty script
-    /// </summary>
     /// <param name="compileError">Callback for compilation errors.</param>
     /// <param name="runtimeError">Callback for runtime errors.</param>
-    public Script(ErrorHandler compileError, ErrorHandler runtimeError)
+    public Script(ErrorHandler compileError, ErrorHandler runtimeError) : this()
     {
         CompileError += compileError;
         RuntimeError += runtimeError;
@@ -272,14 +271,42 @@ public class Script
             if (id < 0 || id > nodesData.Count) throw new ArgumentException($"id {id} is out of range");
     }
 
+    [JsonPolymorphic(UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToNearestAncestor)]
+    [JsonDerivedType(typeof(InputNodeData), typeDiscriminator: "input")]
+    [JsonDerivedType(typeof(OutputNodeData), typeDiscriminator: "output")]
+    [JsonDerivedType(typeof(CombinerNodeData), typeDiscriminator: "combiner")]
+    [JsonDerivedType(typeof(RegularNodeData), typeDiscriminator: "regular")]
     private abstract class NodeData(int[]? Outputs = null)
     {
+        [JsonInclude]
         public int[]? Outputs = Outputs;
+
+        public override bool Equals(object? obj)
+        {
+            if (obj is not NodeData n) return false;
+            return (Outputs == null && n.Outputs == null) || Enumerable.SequenceEqual(Outputs!, n.Outputs!);
+        }
+
+        public override int GetHashCode()
+        {
+            return Outputs?.GetHashCode() ?? 0;
+        }
     }
 
     private class InputNodeData(string InputData) : NodeData
     {
+        [JsonInclude]
         public string InputData = InputData;
+
+        public override bool Equals(object? obj)
+        {
+            return obj is InputNodeData n && base.Equals(n) && InputData.Equals(n.InputData);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(base.GetHashCode(), InputData.GetHashCode());
+        }
     }
 
     private class OutputNodeData() : NodeData;
@@ -287,13 +314,37 @@ public class Script
 
     private class RegularNodeData(string Code) : NodeData
     {
+        [JsonInclude]
         public string Code = Code;
+
+        public override bool Equals(object? obj)
+        {
+            return obj is RegularNodeData n && base.Equals(n) && Code.Equals(n.Code);
+        }
+
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(base.GetHashCode(), Code.GetHashCode());
+        }
     }
 
     private static InternalErrorHandler BindErrorHandler(ErrorHandler? handler, int id)
     {
         return (int line, string message) => handler?.Invoke(id, line, message);
     }
+
+    public override bool Equals(object? obj)
+    {
+        if (obj is not Script s)
+            return false;
+        return nodesData.SequenceEqual(s.nodesData);
+    }
+
+    public override int GetHashCode()
+    {
+        return nodesData.GetHashCode();
+    }
+
 }
 
 public delegate void ErrorHandler(int node_id, int line, string message);
