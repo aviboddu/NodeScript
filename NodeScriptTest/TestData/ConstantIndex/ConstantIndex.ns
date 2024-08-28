@@ -1,0 +1,2 @@
+SET idx, (length(input) - 1) * 5
+PRINT 0, trim("one  two  three"[idx : idx + 5])

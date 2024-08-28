@@ -1,2 +1,2 @@
-SET x, (1+2)*3;
-PRINT 0, to_string(x);
+SET x, (1+2)*3
+PRINT 0, to_string(x)

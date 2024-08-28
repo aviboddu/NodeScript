@@ -1,2 +1,2 @@
-SET mem, mem + input;
-PRINT 0, mem;
+SET mem, mem + input
+PRINT 0, mem

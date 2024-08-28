@@ -26,9 +26,9 @@ internal class Binary(Expr Left, Token Op, Expr Right) : Expr
     public override R Accept<R>(IVisitor<R> visitor) => visitor.VisitBinaryExpr(this);
 }
 
-internal class Index(Variable Variable, Expr[] Arguments) : Expr
+internal class Index(Expr Variable, Expr[] Arguments) : Expr
 {
-    public Variable Variable = Variable;
+    public Expr Variable = Variable;
     public Expr[] Arguments = Arguments;
     public override R Accept<R>(IVisitor<R> visitor) => visitor.VisitIndexExpr(this);
 }

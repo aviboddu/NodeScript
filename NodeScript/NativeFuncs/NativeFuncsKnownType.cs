@@ -59,7 +59,7 @@ internal static class NativeFuncsKnownType
         string s = (string)objs[0];
         int start = (int)objs[1];
         int end = (int)objs[2];
-        return Result<string>.Ok(s.Substring(start, end));
+        return Result<string>.Ok(s[start..end]);
     }
 
     public static Result<string> element_at_stra_int(Span<object> objs)

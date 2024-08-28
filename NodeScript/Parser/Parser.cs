@@ -62,7 +62,7 @@ internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
         }
 
         // Parse a semicolon to end the line
-        if (Consume(SEMICOLON, "Expected semicolon") is null)
+        if (!IsAtEnd())
         {
             errorHandler.Invoke(currentLine, $"Unexpected token, "
                     + $"{op.operation} only requires {op.expressions.Length} expressions");
@@ -206,11 +206,6 @@ internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
             }
             else if (Match(LEFT_SQUARE))
             {
-                if (expr is not Variable v)
-                {
-                    errorHandler.Invoke(currentLine, "Cannot index something that is not an identifier");
-                    return null;
-                }
                 Expr? arg = Expression();
                 if (arg is null) return null;
                 List<Expr> args = [arg];
@@ -221,7 +216,7 @@ internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
                     args.Add(arg);
                 }
                 Consume(RIGHT_SQUARE, "Expect ] after expression");
-                expr = new Index(v, [.. args]);
+                expr = new Index(expr, [.. args]);
             }
             else
                 break;

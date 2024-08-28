@@ -283,7 +283,7 @@ internal static class Validator
 
         public bool VisitGroupingExpr(Grouping expr)
         {
-            return expr.Accept(this);
+            return expr.Expression.Accept(this);
         }
 
         public bool VisitIndexExpr(Index expr)

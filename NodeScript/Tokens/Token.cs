@@ -12,7 +12,7 @@ internal class Token(TokenType type, int start, int end, object? literal, string
 internal enum TokenType : byte
 {
     LEFT_PAREN, RIGHT_PAREN, LEFT_SQUARE, RIGHT_SQUARE,
-    COMMA, DOT, MINUS, PLUS, SEMICOLON, SLASH, STAR, COLON,
+    COMMA, DOT, MINUS, PLUS, SLASH, STAR, COLON,
 
     // One or two character tokens.
     BANG, BANG_EQUAL,

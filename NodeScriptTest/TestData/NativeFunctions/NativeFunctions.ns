@@ -1,1 +1,1 @@
-PRINT 0, to_string(length(input));
+PRINT 0, to_string(length(input))

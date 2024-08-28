@@ -1,2 +1,2 @@
-SET x, "a";
-PRINT 0, x;
+SET x, "a"
+PRINT 0, x

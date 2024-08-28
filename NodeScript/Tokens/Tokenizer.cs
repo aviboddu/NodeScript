@@ -22,8 +22,6 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
             // We are at the beginning of the next lexeme.
             ScanToken();
         }
-
-        AddToken(EOF);
         return tokens.Select(Enumerable.ToArray).ToArray();
     }
 
@@ -54,7 +52,6 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
             case '.': AddToken(DOT); break;
             case '-': AddToken(MINUS); break;
             case '+': AddToken(PLUS); break;
-            case ';': AddToken(SEMICOLON); break;
             case '*': AddToken(STAR); break;
             case '/': AddToken(SLASH); break;
             case ':': AddToken(COLON); break;
@@ -80,7 +77,7 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
 
     private void String()
     {
-        while (Peek() != '"' && !IsAtEnd())
+        while (!IsAtEnd() && Peek() != '"')
         {
             if (Peek() == '\n')
             {
@@ -103,13 +100,13 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
 
     private void Number()
     {
-        while (char.IsDigit(Peek())) Advance();
+        while (!IsAtEnd() && char.IsDigit(Peek())) Advance();
         AddToken(NUMBER, int.Parse(source[start..current]));
     }
 
     private void Identifier()
     {
-        while (char.IsLetterOrDigit(Peek()) || Peek() == '_') Advance();
+        while (!IsAtEnd() && (char.IsLetterOrDigit(Peek()) || Peek() == '_')) Advance();
         AddToken(IdentifierType());
     }
 
@@ -117,15 +114,15 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
     {
         return source[start] switch
         {
-            'A' => CheckKeyword("AND", AND),
+            'a' => CheckKeyword("and", AND),
             'E' => start + 1 < source.Length && source[start + 1] == 'L' ? CheckKeyword("ELSE", ELSE) : CheckKeyword("ENDIF", ENDIF),
-            'F' => CheckKeyword("FALSE", FALSE),
+            'f' => CheckKeyword("false", FALSE),
             'I' => CheckKeyword("IF", IF),
-            'O' => CheckKeyword("OR", OR),
+            'o' => CheckKeyword("or", OR),
             'P' => CheckKeyword("PRINT", PRINT),
             'R' => CheckKeyword("RETURN", RETURN),
             'S' => CheckKeyword("SET", SET),
-            'T' => CheckKeyword("TRUE", TRUE),
+            't' => CheckKeyword("true", TRUE),
             _ => IDENTIFIER,
         };
     }

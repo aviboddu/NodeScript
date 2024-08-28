@@ -1,6 +1,6 @@
-SET x, length(input);
-SET s, "l";
-IF x > 1;
-SET s, "g";
-ENDIF;
-PRINT 0, s;
+SET x, length(input)
+SET s, "l"
+IF x > 1
+SET s, "g"
+ENDIF
+PRINT 0, s

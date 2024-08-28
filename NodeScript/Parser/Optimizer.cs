@@ -51,7 +51,24 @@ internal static class Optimizer
             }
         }
 
-        public Expr VisitIndexExpr(Index expr) => expr;
+        public Expr VisitIndexExpr(Index expr)
+        {
+            expr.Variable = expr.Variable.Accept(this);
+            for (int i = 0; i < expr.Arguments.Length; i++)
+                expr.Arguments[i] = expr.Arguments[i].Accept(this);
+            if (expr.Variable is not Literal || expr.Arguments.Any(a => a is not Literal))
+                return expr;
+            Expr[] func_args = expr.Arguments.Prepend(expr.Variable).ToArray();
+            Result<int> result = NativeFuncs.index_of(func_args);
+            if (!result.Success())
+            {
+                errorHandler(lineNo, result.message!);
+                return expr;
+            }
+            else
+                return new Literal(result.GetValue()!);
+
+        }
 
         public Expr VisitCallExpr(Call expr)
         {
