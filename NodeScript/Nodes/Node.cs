@@ -15,7 +15,7 @@ internal abstract class Node
     public abstract Node[] OutputNodes();
 }
 
-public enum NodeState
+internal enum NodeState
 {
     IDLE, BLOCKED, RUNNING
 }

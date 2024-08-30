@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using static NodeScript.CompilerUtils;
+[assembly: CLSCompliant(true)]
 
 namespace NodeScript;
 
@@ -333,6 +334,7 @@ public class Script()
         return (int line, string message) => handler?.Invoke(id, line, message);
     }
 
+    /// <inheritdoc/>
     public override bool Equals(object? obj)
     {
         if (obj is not Script s)
@@ -340,6 +342,7 @@ public class Script()
         return nodesData.SequenceEqual(s.nodesData);
     }
 
+    /// <inheritdoc/>
     public override int GetHashCode()
     {
         return nodesData.GetHashCode();
@@ -347,4 +350,10 @@ public class Script()
 
 }
 
+/// <summary>
+/// Error Handler used for both compilation and runtime errors
+/// </summary>
+/// <param name="node_id">The id of the erroring node.</param>
+/// <param name="line">The line where the error occured.</param>
+/// <param name="message">A message about the error.</param>
 public delegate void ErrorHandler(int node_id, int line, string message);
