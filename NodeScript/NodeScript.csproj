@@ -21,7 +21,6 @@
     <DebugType>embedded</DebugType>
     <PackageTags>language;games;compiler;interpreter;parsing</PackageTags>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <Deterministic>true</Deterministic>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
