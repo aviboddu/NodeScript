@@ -1,6 +1,7 @@
 namespace NodeScript;
 
 using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using static NodeScript.CompilerUtils;
 using static OpCode;
 
@@ -86,7 +87,6 @@ internal class RegularNode : Node
         object v1, v2;
         int num1;
         bool b;
-        Span<object> parameters;
         Result result;
         OpCode nextOp = (OpCode)Advance();
         switch (nextOp)
@@ -140,8 +140,8 @@ internal class RegularNode : Node
                 switch (v1)
                 {
                     case int n: if (ValidateType<int>(v2)) stack.Push(n + (int)v2); break;
-                    case string s: if (ValidateType<string>(v2)) stack.Push(s + (string)v2); break;
-                    case string[] a: if (ValidateType<string[]>(v2)) stack.Push(a.Concat((string[])v2)); break;
+                    case string s: if (ValidateType<string>(v2)) stack.Push(s + Unsafe.As<string>(v2)); break;
+                    case string[] a: if (ValidateType<string[]>(v2)) stack.Push(a.Concat(Unsafe.As<string[]>(v2))); break;
                     default: Err("Arguments must be either int, string or string[]"); break;
                 }
                 break;
@@ -153,12 +153,12 @@ internal class RegularNode : Node
             case ADDS:
                 v2 = stack.Pop();
                 v1 = stack.Pop();
-                stack.Push((string)v1 + (string)v2);
+                stack.Push(Unsafe.As<string>(v1) + Unsafe.As<string>(v2));
                 break;
             case ADDA:
                 v2 = stack.Pop();
                 v1 = stack.Pop();
-                stack.Push(((string[])v1).Concat((string[])v2));
+                stack.Push(Unsafe.As<string[]>(v1).Concat(Unsafe.As<string[]>(v2)));
                 break;
             case AND:
                 v2 = stack.Pop();
@@ -201,7 +201,7 @@ internal class RegularNode : Node
                 v1 = stack.Pop();
                 if (ValidateType<int>(v1) && ValidateType<string>(v2))
                 {
-                    if ((!outputs?[(int)v1].PushInput((string)v2)) ?? true)
+                    if ((!outputs?[(int)v1].PushInput(Unsafe.As<string>(v2))) ?? true)
                     {
                         stack.Push(v1);
                         stack.Push(v2);
@@ -217,7 +217,7 @@ internal class RegularNode : Node
             case PRINTIS:
                 v2 = stack.Pop();
                 v1 = stack.Pop();
-                if ((!outputs?[(int)v1].PushInput(v2.ToString()!)) ?? true)
+                if ((!outputs?[(int)v1].PushInput(Unsafe.As<string>(v2))) ?? true)
                 {
                     stack.Push(v1);
                     stack.Push(v2);
@@ -249,14 +249,12 @@ internal class RegularNode : Node
             case CALL:
                 name = (string)constants[Advance()];
                 num1 = Advance();
-                parameters = stack.GetInternalArray().AsSpan()[(stack.Count - num1)..stack.Count];
                 if (!NativeFuncs.NativeFunctions.TryGetValue(name, out NativeDelegate? func))
                 {
                     Err($"Function {name} does not exist");
                     break;
                 }
-                result = func(parameters);
-                while (num1-- > 0) stack.Pop();
+                result = CallFunc(func, num1);
                 if (!result.Success())
                     Err(result.message!);
                 else
@@ -265,14 +263,12 @@ internal class RegularNode : Node
             case CALL_TYPE_KNOWN:
                 name = (string)constants[Advance()];
                 num1 = Advance();
-                parameters = stack.GetInternalArray().AsSpan()[(stack.Count - num1)..stack.Count];
                 if (!NativeFuncsKnownType.NativeFunctions.TryGetValue(name, out NativeDelegate? knownFunc))
                 {
                     Err($"Function {name} does not exist");
                     break;
                 }
-                result = knownFunc(parameters);
-                while (num1-- > 0) stack.Pop();
+                result = CallFunc(knownFunc, num1);
                 if (!result.Success())
                     Err(result.message!);
                 else
@@ -293,6 +289,7 @@ internal class RegularNode : Node
         State = NodeState.IDLE;
         nextInstruction = 0;
         variables.Clear();
+        panic = false;
         InitGlobals();
     }
 
@@ -336,6 +333,14 @@ internal class RegularNode : Node
         }
     }
 
+    private Result CallFunc(NativeDelegate func, int numParams)
+    {
+        object[] parameters = new object[numParams];
+        while (numParams-- > 0)
+            parameters[numParams] = stack.Pop();
+        return func(parameters);
+    }
+
     public override Node[] OutputNodes()
     {
         return outputs is null ? [] : outputs;
@@ -355,8 +360,5 @@ internal class RegularNode : Node
         runtimeError.Invoke(GetLine(nextInstruction - 1), message);
     }
 
-    public override string ToString()
-    {
-        return "RegularNode";
-    }
+    public override string ToString() => "RegularNode";
 }

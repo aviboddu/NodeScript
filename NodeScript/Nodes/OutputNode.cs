@@ -15,20 +15,8 @@ internal class OutputNode : Node
         return true;
     }
 
-    public override void StepLine()
-    {
-        return;
-    }
-
+    public override void StepLine() { }
     public override void Reset() => outputBuilder.Clear();
-
-    public override Node[] OutputNodes()
-    {
-        return [];
-    }
-
-    public override string ToString()
-    {
-        return "OutputNode";
-    }
+    public override Node[] OutputNodes() => [];
+    public override string ToString() => "OutputNode";
 }

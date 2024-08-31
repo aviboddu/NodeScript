@@ -3,6 +3,7 @@ namespace NodeScript;
 
 using System.Collections.Frozen;
 using static CompilerUtils;
+using static NativeFuncsKnownType;
 
 internal delegate Result NativeDelegate(Span<object> parameters);
 
@@ -31,10 +32,7 @@ internal static class NativeFuncs
         if (objs.Length != 2) return Result<string[]>.Fail("split takes two parameters");
         if (objs[0] is not string || objs[1] is not string)
             return Result<string[]>.Fail("Both parameters for split must be a string");
-
-        string separator = (string)objs[0];
-        string s = (string)objs[1];
-        return Result<string[]>.Ok(s.Split(separator, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
+        return split_str_str(objs);
     }
 
     public static Result<string> join(Span<object> objs)
@@ -43,9 +41,7 @@ internal static class NativeFuncs
         if (objs[0] is not string || objs[1] is not string[])
             return Result<string>.Fail("join takes one string and one string array");
 
-        string separator = (string)objs[0];
-        string[] s = (string[])objs[1];
-        return Result<string>.Ok(string.Join(separator, s));
+        return join_str_stra(objs);
     }
 
     public static Result<int> index_of(Span<object> objs)
@@ -54,9 +50,7 @@ internal static class NativeFuncs
         if (objs[0] is not string || objs[1] is not string)
             return Result<int>.Fail("index_of takes two strings");
 
-        string search = (string)objs[0];
-        string s = (string)objs[1];
-        return Result<int>.Ok(s.IndexOf(search));
+        return index_of_str_str(objs);
     }
 
     public static Result<object> slice(Span<object> objs)
@@ -78,10 +72,9 @@ internal static class NativeFuncs
         if (!(objs[0] is string || objs[0] is string[]) || objs[1] is not int)
             return Result<string>.Fail("element_at takes one string or string array and one int");
 
-        int idx = (int)objs[1];
         if (objs[0] is string s)
-            return Result<string>.Ok(s[idx].ToString());
-        return Result<string>.Ok(((string[])objs[0])[idx]);
+            return element_at_str_int(objs);
+        return element_at_stra_int(objs);
     }
 
     public static Result<string> to_string(Span<object> objs)
@@ -94,16 +87,14 @@ internal static class NativeFuncs
     {
         if (objs.Length != 1) return Result<int>.Fail("parse_int takes one parameter");
         if (objs[0] is not string s) return Result<int>.Fail("parse_int takes in a single string");
-        if (!int.TryParse(s, out int i))
-            return Result<int>.Fail("Failed to parse int");
-        return Result<int>.Ok(i);
+        return parse_int_str(objs);
     }
 
     public static Result<bool> can_parse(Span<object> objs)
     {
         if (objs.Length != 1) return Result<bool>.Fail("can_parse takes one parameter");
-        if (objs[0] is not string s) return Result<bool>.Ok(false);
-        return Result<bool>.Ok(int.TryParse(s, out _));
+        if (objs[0] is not string) return Result<bool>.Ok(false);
+        return can_parse_str(objs);
     }
 
     public static Result<string[]> remove_at(Span<object> objs)
@@ -111,20 +102,14 @@ internal static class NativeFuncs
         if (objs.Length != 2) return Result<string[]>.Fail("remove_at takes two parameters");
         if (objs[0] is not string[] a || objs[1] is not int i)
             return Result<string[]>.Fail("remove_at takes in a string array and an int");
-        if (a.Length <= i) return Result<string[]>.Fail($"array does not have index {i}");
-        string[] list = new string[a.Length - 1];
-        for (int j = 0; j < i; j++)
-            list[j] = a[j];
-        for (int j = i + 1; j < a.Length; j++)
-            list[j - 1] = a[j];
-        return Result<string[]>.Ok([.. list]);
+        return remove_at_stra_int(objs);
     }
 
     public static Result<string> trim(Span<object> objs)
     {
         if (objs.Length != 1) return Result<string>.Fail("trim takes one parameter");
-        if (objs[0] is not string s)
+        if (objs[0] is not string)
             return Result<string>.Fail("trim takes in a string");
-        return Result<string>.Ok(s.Trim());
+        return trim_str(objs);
     }
 }
