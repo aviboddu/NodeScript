@@ -5,6 +5,7 @@ using System.Diagnostics;
 using static TokenType;
 using static CompilerUtils;
 using System.Text;
+using System.Runtime.InteropServices;
 
 [DebuggerDisplay("currentLine = {currentLine, nq}")]
 internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandler)
@@ -12,30 +13,39 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
     private readonly Operation?[] operations = operations;
     private readonly InternalErrorHandler errorHandler = errorHandler;
     private int currentLine = 0;
+    private List<object> constants = [];
+    private List<byte> bytes = [];
+    private List<int> lines = [];
+    private Dictionary<string, ushort> variables = [];
 
-    public (byte[] code, object[] constants, int[] lines) Compile()
+    public record CompiledData(byte[] Code, object[] Constants, int[] Lines, int NumVariables);
+
+    public CompiledData Compile()
     {
-        List<object> constants = [];
-        List<byte> bytes = [];
-        List<int> lines = [];
+        constants = [];
+        bytes = [];
+        lines = [];
+        variables = [];
+        variables.Add("input", 0);
+        variables.Add("mem", 1);
 
         while (currentLine < operations.Length)
         {
-            if (!CompileLine(bytes, lines, constants))
-                return ([], [], []);
+            if (!CompileLine())
+                return new([], [], [], 0);
             currentLine++;
         }
 
-        if (!PatchJumps(bytes, lines))
-            return ([], [], []);
+        if (!PatchJumps())
+            return new([], [], [], 0);
 
         // Insert an additional return operation just in case the user didn't include one at the end.    
         bytes.Insert(bytes.Count - 1, (byte)OpCode.RETURN);
         lines.Add(lines[^1]);
-        return (bytes.ToArray(), constants.ToArray(), lines.ToArray());
+        return new([.. bytes], [.. constants], [.. lines], variables.Count);
     }
 
-    private bool CompileLine(List<byte> bytes, List<int> lines, List<object> constants)
+    private bool CompileLine()
     {
         Operation? op = operations[currentLine];
         if (op is null)
@@ -48,7 +58,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
         int startIdx = bytes.Count;
         if (op.expressions.Length != 0)
         {
-            CompilerVisitor visitor = new(bytes, lines, constants, currentLine);
+            CompilerVisitor visitor = new(this);
             foreach (Expr expr in op.expressions)
             {
                 if (!expr.Accept(visitor))
@@ -85,10 +95,10 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                 }
                 // We remove the GET code and add a SET code at the end.
                 bytes.RemoveAt(idx);
-                byte id = bytes[idx];
-                bytes.RemoveAt(idx);
+                List<byte> id = bytes.Slice(idx, 2);
+                bytes.RemoveAt(idx); bytes.RemoveAt(idx);
                 bytes.Add((byte)OpCode.SET);
-                bytes.Add(id);
+                bytes.AddRange(id);
                 break;
             case PRINT:
                 if (op.expressions[0].Type == typeof(int) && op.expressions[1].Type == typeof(string))
@@ -115,7 +125,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
         return true;
     }
 
-    private bool PatchJumps(List<byte> code, List<int> lines)
+    private bool PatchJumps()
     {
         // This is a stack of indices of IF statements. We need to use stacks to deal with nested IFs appropriately
         Stack<(int idx, bool hasElse)> ifStmts = [];
@@ -125,9 +135,9 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
         bool hasElse;
 
         // We iterate through all instructions and find JUMP or JUMP_IF_FALSE operations.
-        for (int opNo = 0; opNo < code.Count; opNo++)
+        for (int opNo = 0; opNo < bytes.Count; opNo++)
         {
-            OpCode opCode = (OpCode)code[opNo];
+            OpCode opCode = (OpCode)bytes[opNo];
             switch (opCode)
             {
                 case OpCode.CONSTANT:
@@ -152,8 +162,8 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                     // Technically this is the difference between the respective beginnings of the jump offsets, 
                     //      but that's equal to the difference between the respective ends of the jump offsets (ie the following instruction).
                     diff = (ushort)(opNo + 1 - ifIdx);
-                    code[ifIdx] = (byte)(diff >> 8);
-                    code[ifIdx + 1] = (byte)(diff & 0xFF);
+                    bytes[ifIdx] = (byte)(diff >> 8);
+                    bytes[ifIdx + 1] = (byte)(diff & 0xFF);
                     ifStmts.Push((ifIdx, true));
                     opNo += 2;
                     break;
@@ -170,15 +180,15 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                         // So we need this to jump to the end of the if statement, skipping the ELSE block
                         elseIdx = elseStmts.Pop();
                         diff = (ushort)(opNo - elseIdx);
-                        code[elseIdx] = (byte)(diff >> 8);
-                        code[elseIdx + 1] = (byte)(diff & 0xFF);
+                        bytes[elseIdx] = (byte)(diff >> 8);
+                        bytes[elseIdx + 1] = (byte)(diff & 0xFF);
                     }
                     else
                     {
                         // The IF block will be skipped if the condition is false (ie the JUMP_IF_FALSE operation)
                         diff = (ushort)(opNo - ifIdx);
-                        code[ifIdx] = (byte)(diff >> 8);
-                        code[ifIdx + 1] = (byte)(diff & 0xFF);
+                        bytes[ifIdx] = (byte)(diff >> 8);
+                        bytes[ifIdx + 1] = (byte)(diff & 0xFF);
                     }
                     break;
                 case OpCode.CALL: opNo += 2; break;
@@ -188,12 +198,13 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
     }
 
     // This class will visit expressions in post-order and emit the appropriate bytecode depending on the type of expression
-    private class CompilerVisitor(List<byte> bytes, List<int> lines, List<object> constants, int currentLine) : Expr.IVisitor<bool>
+    private class CompilerVisitor(Compiler c) : Expr.IVisitor<bool>
     {
-        private List<byte> bytes = bytes;
-        private List<int> lines = lines;
-        private readonly List<object> constants = constants;
-        private readonly int currentLine = currentLine;
+        private readonly List<byte> bytes = c.bytes;
+        private readonly List<int> lines = c.lines;
+        private readonly List<object> constants = c.constants;
+        private readonly Dictionary<string, ushort> variables = c.variables;
+        private readonly int currentLine = c.currentLine;
 
         public bool VisitBinaryExpr(Binary expr)
         {
@@ -344,7 +355,10 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
         public bool VisitVariableExpr(Variable expr)
         {
             string name = expr.Name.Lexeme.ToString();
-            Emit(OpCode.GET, MakeConst(name));
+            byte[] varValue = MakeVar(name);
+            if (varValue == Array.Empty<byte>())
+                return false;
+            Emit(OpCode.GET, varValue);
             return true;
         }
 
@@ -357,6 +371,18 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                 constants.Add(val);
             }
             return (byte)idx;
+        }
+
+        private byte[] MakeVar(string name)
+        {
+            if (!variables.TryGetValue(name, out ushort i))
+            {
+                if (variables.Count == ushort.MaxValue)
+                    return [];
+                i = (ushort)variables.Count;
+                variables.Add(name, i);
+            }
+            return [(byte)(i >> 8), (byte)(i & 0xff)];
         }
 
         private void Emit(OpCode opCode)

@@ -32,10 +32,10 @@ internal static class NodeFactory
 
         // Compile
         Compiler compiler = new(operations, compileError);
-        (byte[] code, object[] constants, int[] lines) = compiler.Compile();
+        Compiler.CompiledData data = compiler.Compile();
         if (hasError) return null;
 
-        RegularNode regularNode = new(code, constants, lines, runtimeError, outputs);
+        RegularNode regularNode = new(data, runtimeError, outputs);
         return regularNode;
     }
 }

@@ -14,27 +14,28 @@ internal class RegularNode : Node
     private readonly byte[] code;
     private readonly object[] constants;
     private readonly Stack<object> stack = new();
-    private readonly Dictionary<string, object> variables = [];
+    private readonly object[] variables;
     private readonly int[] lines;
 
     private int nextInstruction = 0;
     private bool panic = false;
 
-    public RegularNode(byte[] code, object[] constants, int[] lines, InternalErrorHandler runtimeError, Node[]? outputs = null)
+    public RegularNode(Compiler.CompiledData compiledData, InternalErrorHandler runtimeError, Node[]? outputs = null)
     {
-        this.code = code;
-        this.constants = constants;
+        code = compiledData.Code;
+        constants = compiledData.Constants;
+        lines = CumulativeInstructionsPerLine(compiledData.Lines);
+        variables = new object[compiledData.NumVariables];
         this.outputs = outputs;
         this.runtimeError = runtimeError;
-        this.lines = CumulativeInstructionsPerLine(lines);
 
         InitGlobals();
     }
 
     private void InitGlobals()
     {
-        variables["input"] = string.Empty;
-        variables["mem"] = string.Empty;
+        variables[0] = string.Empty; // input
+        variables[1] = string.Empty; // mem
     }
 
     private static int[] CumulativeInstructionsPerLine(int[] line)
@@ -63,10 +64,7 @@ internal class RegularNode : Node
     {
         if (State == NodeState.IDLE)
         {
-            object mem = variables["mem"];
-            variables.Clear();
-            variables["mem"] = mem;
-            variables["input"] = input;
+            variables[0] = input;
             nextInstruction = 0;
             State = NodeState.RUNNING;
             return true;
@@ -96,13 +94,11 @@ internal class RegularNode : Node
             case FALSE: stack.Push(false); break;
             case POP: stack.Pop(); break;
             case GET:
-                name = (string)constants[Advance()];
-                stack.Push(variables[name]);
+                stack.Push(variables[NextShort()]);
                 break;
             case SET:
                 v1 = stack.Pop();
-                name = (string)constants[Advance()];
-                variables[name] = v1;
+                variables[NextShort()] = v1;
                 break;
             case EQUAL:
                 v2 = stack.Pop();
@@ -288,7 +284,8 @@ internal class RegularNode : Node
     {
         State = NodeState.IDLE;
         nextInstruction = 0;
-        variables.Clear();
+        for (int i = 0; i < variables.Length; i++)
+            variables[i] = string.Empty;
         panic = false;
         InitGlobals();
     }
