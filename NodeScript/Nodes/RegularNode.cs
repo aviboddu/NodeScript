@@ -19,6 +19,8 @@ internal class RegularNode : Node
     private readonly BitArray initVar;
     private readonly int[] lines;
 
+    private object[] parameters = new object[3];
+
     private int nextInstruction = 0;
     private bool panic = false;
 
@@ -342,10 +344,12 @@ internal class RegularNode : Node
 
     private Result CallFunc(NativeDelegate func, int numParams)
     {
-        object[] parameters = new object[numParams];
-        while (numParams-- > 0)
-            parameters[numParams] = stack.Pop();
-        return func(parameters);
+        if (parameters.Length < numParams)
+            parameters = new object[numParams];
+        int paramsToAdd = numParams;
+        while (paramsToAdd-- > 0)
+            parameters[paramsToAdd] = stack.Pop();
+        return func(parameters.AsSpan().Slice(0, numParams));
     }
 
     public override Node[] OutputNodes()

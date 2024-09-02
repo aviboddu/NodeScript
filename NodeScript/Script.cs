@@ -185,10 +185,17 @@ public class Script()
     /// </summary>
     public void Run()
     {
+        bool anyRunning;
         do
         {
             StepLine();
-        } while (NodesToExecute.Any(n => n.State == NodeState.RUNNING));
+
+            // Checks if any nodes are running. The Any() method causes many allocations
+            anyRunning = false;
+            for (int i = 0; i < NodesToExecute.Length; i++)
+                anyRunning |= NodesToExecute[i].State == NodeState.RUNNING;
+
+        } while (anyRunning);
     }
 
     /// <summary>
