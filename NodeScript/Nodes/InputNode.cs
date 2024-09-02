@@ -2,27 +2,26 @@ using System.Diagnostics;
 
 namespace NodeScript;
 
-[DebuggerDisplay("stringReader = {input}")]
+[DebuggerDisplay("nextLine = {nextLine}")]
 internal class InputNode : Node
 {
     public Node? output;
 
-    private readonly string inputData;
-    private StringReader input;
-    private string? currentLine = null;
+    private readonly string[] inputLines;
+    private int nextLine = -1;
 
     public InputNode(string input, Node? output = null)
     {
-        inputData = input;
-        this.input = new(input);
+        char[] splitters = ['\n', '\r'];
+        inputLines = input.Split(splitters, options: StringSplitOptions.RemoveEmptyEntries);
         this.output = output;
+        nextLine = 0;
         State = NodeState.RUNNING;
     }
 
     public override void Reset()
     {
-        input = new(inputData);
-        currentLine = null;
+        nextLine = 0;
         State = NodeState.RUNNING;
     }
 
@@ -34,14 +33,13 @@ internal class InputNode : Node
     public override void StepLine()
     {
         if (State != NodeState.RUNNING) return;
-        if (input.Peek() == -1 && currentLine is null)
+        if (nextLine >= inputLines.Length)
         {
             State = NodeState.IDLE;
             return;
         }
-        currentLine ??= input.ReadLine();
-        if (output?.PushInput(currentLine!) ?? false)
-            currentLine = null;
+        if (output?.PushInput(inputLines[nextLine]) ?? false)
+            nextLine++;
     }
 
     public override Node[] OutputNodes()

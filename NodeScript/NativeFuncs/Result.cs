@@ -9,7 +9,7 @@ internal abstract class Result(string? message = null)
 
 internal class Result<T> : Result
 {
-    public readonly T? value;
+    private readonly object? value;
 
     protected Result(T? value = default, string? message = null) : base(message)
     {
