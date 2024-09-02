@@ -36,3 +36,4 @@ Every line contains a single statement. All statements will start with a relevan
 - IF: Executes the following code if the given expression is true. Syntax `IF <expression>`
 - ELSE: Executes the following code if the previous if statement was false. Syntax `ELSE`
 - ENDIF: Marks the end of the IF clause. Either ends the IF code section or the ELSE code section. Only one is needed per IF/ELSE statement. Syntax `ENDIF`
+- NOP: Does nothing. Helpful for synchronizing the timing of multiple nodes. Syntax `NOP`

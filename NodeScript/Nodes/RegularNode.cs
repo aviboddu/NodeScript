@@ -290,7 +290,7 @@ internal class RegularNode : Node
                 initVar[1] = true;
                 return true;
             case ENDIF:
-            case NOP: break;
+            case NOP: return true;
         }
         return false;
     }

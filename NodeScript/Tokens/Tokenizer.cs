@@ -118,6 +118,7 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
             'E' => start + 1 < source.Length && source[start + 1] == 'L' ? CheckKeyword("ELSE", ELSE) : CheckKeyword("ENDIF", ENDIF),
             'f' => CheckKeyword("false", FALSE),
             'I' => CheckKeyword("IF", IF),
+            'N' => CheckKeyword("NOP", NOP),
             'o' => CheckKeyword("or", OR),
             'P' => CheckKeyword("PRINT", PRINT),
             'R' => CheckKeyword("RETURN", RETURN),

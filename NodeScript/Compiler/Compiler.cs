@@ -118,6 +118,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                 break;
             // ENDIF marker for jump patching.
             case ENDIF: bytes.Add((byte)OpCode.ENDIF); lines.Add(currentLine); break;
+            case NOP: bytes.Add((byte)OpCode.NOP); lines.Add(currentLine); break;
         }
         return true;
     }

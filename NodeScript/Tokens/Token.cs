@@ -25,7 +25,7 @@ internal enum TokenType : byte
     IDENTIFIER, STRING, NUMBER,
 
     // Keywords.
-    AND, ELSE, FALSE, IF, OR, ENDIF, SET,
+    AND, ELSE, FALSE, IF, OR, ENDIF, SET, NOP,
     PRINT, RETURN, TRUE,
 
     EOF

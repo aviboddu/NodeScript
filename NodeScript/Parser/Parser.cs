@@ -44,6 +44,7 @@ internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
             case ELSE: op = new(ELSE, 0); break;
             case ENDIF: op = new(ENDIF, 0); break;
             case RETURN: op = new(RETURN, 0); break;
+            case NOP: op = new(NOP, 0); break;
             case EOF: return null;
             default:
                 errorHandler.Invoke(currentLine, $"Unexpected token {commandType}");
