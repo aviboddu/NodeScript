@@ -253,9 +253,17 @@ internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
         if (Match(FALSE)) return new Literal(false);
         if (Match(TRUE)) return new Literal(true);
 
-        if (Match(NUMBER, STRING))
+        if (Match(NUMBER))
         {
-            return new Literal(Previous().literal!);
+            if (int.TryParse(Previous().Lexeme, out int val))
+                return new Literal(val);
+            else
+                errorHandler(currentLine, "Failed to parse integer literal");
+        }
+
+        if (Match(STRING))
+        {
+            return new Literal(Previous().Lexeme[1..^1].ToString());
         }
 
         if (Match(LEFT_PAREN))

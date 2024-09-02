@@ -1,11 +1,10 @@
 namespace NodeScript;
 
-internal class Token(TokenType type, int start, int end, object? literal, string code)
+internal class Token(TokenType type, int start, int end, string code)
 {
     public readonly TokenType type = type;
     private readonly int start = start;
     private readonly int end = end;
-    public readonly object? literal = literal;
     public ReadOnlySpan<char> Lexeme => code.AsSpan(start, end - start);
 }
 

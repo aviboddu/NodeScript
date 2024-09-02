@@ -95,13 +95,13 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
 
         // The closing quote.
         Advance();
-        AddToken(STRING, source[(start + 1)..(current - 1)]);
+        AddToken(STRING);
     }
 
     private void Number()
     {
         while (!IsAtEnd() && char.IsDigit(Peek())) Advance();
-        AddToken(NUMBER, int.Parse(source[start..current]));
+        AddToken(NUMBER);
     }
 
     private void Identifier()
@@ -187,8 +187,8 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
         }
     }
 
-    private void AddToken(TokenType type, object? obj = null)
+    private void AddToken(TokenType type)
     {
-        tokens[line].Add(new(type, start, current, obj, source));
+        tokens[line].Add(new(type, start, current, source));
     }
 }
