@@ -1,5 +1,6 @@
 namespace NodeScript;
 
+using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using static NodeScript.CompilerUtils;
@@ -15,6 +16,7 @@ internal class RegularNode : Node
     private readonly object[] constants;
     private readonly Stack<object> stack = new();
     private readonly object[] variables;
+    private readonly BitArray initVar;
     private readonly int[] lines;
 
     private int nextInstruction = 0;
@@ -26,6 +28,7 @@ internal class RegularNode : Node
         constants = compiledData.Constants;
         lines = CumulativeInstructionsPerLine(compiledData.Lines);
         variables = new object[compiledData.NumVariables];
+        initVar = new(compiledData.NumVariables);
         this.outputs = outputs;
         this.runtimeError = runtimeError;
 
@@ -35,7 +38,10 @@ internal class RegularNode : Node
     private void InitGlobals()
     {
         variables[0] = string.Empty; // input
+        initVar[0] = true;
+
         variables[1] = string.Empty; // mem
+        initVar[1] = true;
     }
 
     private static int[] CumulativeInstructionsPerLine(int[] line)
@@ -85,6 +91,7 @@ internal class RegularNode : Node
         object v1, v2;
         int num1;
         bool b;
+        ushort idx;
         Result result;
         OpCode nextOp = (OpCode)Advance();
         switch (nextOp)
@@ -94,11 +101,17 @@ internal class RegularNode : Node
             case FALSE: stack.Push(false); break;
             case POP: stack.Pop(); break;
             case GET:
-                stack.Push(variables[NextShort()]);
+                idx = NextShort();
+                if (initVar[idx])
+                    stack.Push(variables[idx]);
+                else
+                    Err("Tried to get a variable that was not yet initialized");
                 break;
             case SET:
                 v1 = stack.Pop();
-                variables[NextShort()] = v1;
+                idx = NextShort();
+                variables[idx] = v1;
+                initVar[idx] = true;
                 break;
             case EQUAL:
                 v2 = stack.Pop();
@@ -272,6 +285,9 @@ internal class RegularNode : Node
                 break;
             case RETURN:
                 State = NodeState.IDLE;
+                initVar.SetAll(false);
+                initVar[0] = true;
+                initVar[1] = true;
                 break;
             case LINE_END:
                 return true;
@@ -284,8 +300,7 @@ internal class RegularNode : Node
     {
         State = NodeState.IDLE;
         nextInstruction = 0;
-        for (int i = 0; i < variables.Length; i++)
-            variables[i] = string.Empty;
+        initVar.SetAll(false);
         panic = false;
         InitGlobals();
     }
