@@ -43,6 +43,6 @@ internal enum OpCode : byte
     CALL, // Pop one or more values off the stack and push the result of the corresponding native function call
     CALL_TYPE_KNOWN, // Pop one or more values off the stack and push the result of the corresponding native function call with known types
     RETURN, // Become idle
-    LINE_END, // End the line
+    ENDIF, // End the if block
     NOP, // Do nothing
 }

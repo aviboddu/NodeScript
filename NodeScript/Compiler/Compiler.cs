@@ -40,7 +40,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
             return new([], [], [], 0);
 
         // Insert an additional return operation just in case the user didn't include one at the end.    
-        bytes.Insert(bytes.Count - 1, (byte)OpCode.RETURN);
+        bytes.Add((byte)OpCode.RETURN);
         lines.Add(lines[^1]);
         return new([.. bytes], [.. constants], [.. lines], variables.Count);
     }
@@ -79,13 +79,12 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                     switch (oper)
                     {
                         case OpCode.GET: idx = startIdx; startIdx = bytes.Count; break;
-                        case OpCode.CONSTANT:
-                        case OpCode.SET: startIdx++; break;
+                        case OpCode.CONSTANT: startIdx++; break;
+                        case OpCode.SET:
                         case OpCode.JUMP:
-                        case OpCode.CALL: startIdx += 2; break;
                         case OpCode.JUMP_IF_FALSE:
-                            startIdx++;
-                            break;
+                        case OpCode.CALL:
+                        case OpCode.CALL_TYPE_KNOWN: startIdx += 2; break;
                     }
                 }
                 if (idx == -1)
@@ -117,11 +116,9 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                 bytes.Add((byte)OpCode.JUMP); bytes.Add(0xff); bytes.Add(0xff);
                 lines.Add(currentLine); lines.Add(currentLine); lines.Add(currentLine);
                 break;
-            // A NOP code serves as the ENDIF marker. This is for jump patching.
-            case ENDIF: bytes.Add((byte)OpCode.NOP); lines.Add(currentLine); break;
+            // ENDIF marker for jump patching.
+            case ENDIF: bytes.Add((byte)OpCode.ENDIF); lines.Add(currentLine); break;
         }
-        bytes.Add((byte)OpCode.LINE_END);
-        lines.Add(currentLine);
         return true;
     }
 
@@ -140,9 +137,9 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
             OpCode opCode = (OpCode)bytes[opNo];
             switch (opCode)
             {
-                case OpCode.CONSTANT:
+                case OpCode.CONSTANT: opNo++; break;
                 case OpCode.GET:
-                case OpCode.SET: opNo++; break;
+                case OpCode.SET: opNo += 2; break;
                 case OpCode.JUMP:
                     // A JUMP operation occurs during ELSE statements
                     elseStmts.Push(opNo + 1); // This points to the JUMP offset, allowing us to set it easily later on.
@@ -171,7 +168,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                     ifStmts.Push((opNo + 1, false));
                     opNo += 2;
                     break;
-                case OpCode.NOP:
+                case OpCode.ENDIF:
                     (ifIdx, hasElse) = ifStmts.Pop();
                     // We don't need to do the same validation here because we've already done our validation step before.
                     if (hasElse)
@@ -186,12 +183,13 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                     else
                     {
                         // The IF block will be skipped if the condition is false (ie the JUMP_IF_FALSE operation)
-                        diff = (ushort)(opNo - ifIdx);
+                        diff = (ushort)(opNo - 2 - ifIdx);
                         bytes[ifIdx] = (byte)(diff >> 8);
                         bytes[ifIdx + 1] = (byte)(diff & 0xFF);
                     }
                     break;
-                case OpCode.CALL: opNo += 2; break;
+                case OpCode.CALL:
+                case OpCode.CALL_TYPE_KNOWN: opNo += 2; break;
             }
         }
         return true;

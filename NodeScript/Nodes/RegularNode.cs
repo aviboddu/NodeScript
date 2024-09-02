@@ -112,7 +112,7 @@ internal class RegularNode : Node
                 idx = NextShort();
                 variables[idx] = v1;
                 initVar[idx] = true;
-                break;
+                return true;
             case EQUAL:
                 v2 = stack.Pop();
                 v1 = stack.Pop();
@@ -222,7 +222,7 @@ internal class RegularNode : Node
                         State = NodeState.RUNNING;
                     }
                 }
-                return false;
+                return true;
             case PRINTIS:
                 v2 = stack.Pop();
                 v1 = stack.Pop();
@@ -237,10 +237,10 @@ internal class RegularNode : Node
                 {
                     State = NodeState.RUNNING;
                 }
-                return false;
+                return true;
             case JUMP:
                 nextInstruction += NextShort();
-                break;
+                return true;
             case JUMP_IF_FALSE:
                 v1 = stack.Pop();
                 b = v1 switch
@@ -254,7 +254,7 @@ internal class RegularNode : Node
                 ushort jump_val = NextShort();
                 if (!b)
                     nextInstruction += jump_val;
-                break;
+                return true;
             case CALL:
                 name = (string)constants[Advance()];
                 num1 = Advance();
@@ -288,9 +288,8 @@ internal class RegularNode : Node
                 initVar.SetAll(false);
                 initVar[0] = true;
                 initVar[1] = true;
-                break;
-            case LINE_END:
                 return true;
+            case ENDIF:
             case NOP: break;
         }
         return false;
