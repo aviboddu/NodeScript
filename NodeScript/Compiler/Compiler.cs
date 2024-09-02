@@ -5,7 +5,6 @@ using System.Diagnostics;
 using static TokenType;
 using static CompilerUtils;
 using System.Text;
-using System.Runtime.InteropServices;
 
 [DebuggerDisplay("currentLine = {currentLine, nq}")]
 internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandler)
@@ -26,8 +25,8 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
         bytes = [];
         lines = [];
         variables = [];
-        variables.Add("input", 0);
-        variables.Add("mem", 1);
+        variables.Add("input", INPUT_VARIABLE_IDX);
+        variables.Add("mem", MEM_VARIABLE_IDX);
 
         while (currentLine < operations.Length)
         {

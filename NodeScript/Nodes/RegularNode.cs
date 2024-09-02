@@ -37,11 +37,11 @@ internal class RegularNode : Node
 
     private void InitGlobals()
     {
-        variables[0] = string.Empty; // input
-        initVar[0] = true;
+        variables[INPUT_VARIABLE_IDX] = string.Empty; // input
+        initVar[INPUT_VARIABLE_IDX] = true;
 
-        variables[1] = string.Empty; // mem
-        initVar[1] = true;
+        variables[MEM_VARIABLE_IDX] = string.Empty; // mem
+        initVar[MEM_VARIABLE_IDX] = true;
     }
 
     private static int[] CumulativeInstructionsPerLine(int[] line)
@@ -70,7 +70,7 @@ internal class RegularNode : Node
     {
         if (State == NodeState.IDLE)
         {
-            variables[0] = input;
+            variables[INPUT_VARIABLE_IDX] = input;
             nextInstruction = 0;
             State = NodeState.RUNNING;
             return true;
@@ -81,135 +81,147 @@ internal class RegularNode : Node
     public override void StepLine()
     {
         if (State == NodeState.IDLE) return;
-        while (!panic && !Step()) { }
-    }
-
-    // Steps through the code in this node instruction-by-instruction. Returns true if we've reached the end of the line
-    protected bool Step()
-    {
-        string name;
-        object v1, v2;
-        int num1;
-        bool b;
-        ushort idx;
-        Result result;
-        OpCode nextOp = (OpCode)Advance();
-        switch (nextOp)
+        while (!panic)
         {
-            case CONSTANT: stack.Push(constants[Advance()]); break;
-            case TRUE: stack.Push(true); break;
-            case FALSE: stack.Push(false); break;
-            case POP: stack.Pop(); break;
-            case GET:
-                idx = NextShort();
-                if (initVar[idx])
-                    stack.Push(variables[idx]);
-                else
-                    Err("Tried to get a variable that was not yet initialized");
-                break;
-            case SET:
-                v1 = stack.Pop();
-                idx = NextShort();
-                variables[idx] = v1;
-                initVar[idx] = true;
-                return true;
-            case EQUAL:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                stack.Push(v1.Equals(v2));
-                break;
-            case NOT_EQUAL:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                stack.Push(!v1.Equals(v2));
-                break;
-            case GREATER:
-            case GREATER_EQUAL:
-            case LESS:
-            case LESS_EQUAL:
-            case SUBTRACT:
-            case MULTIPLY:
-            case DIVIDE:
-                BinaryArithmetic(nextOp);
-                break;
-            case GREATERI:
-            case GREATER_EQUALI:
-            case LESSI:
-            case LESS_EQUALI:
-            case SUBTRACTI:
-            case MULTIPLYI:
-            case DIVIDEI:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                BinaryArithmeticUnchecked(nextOp, (int)v1, (int)v2);
-                break;
-            case ADD:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                switch (v1)
-                {
-                    case int n: if (ValidateType<int>(v2)) stack.Push(n + (int)v2); break;
-                    case string s: if (ValidateType<string>(v2)) stack.Push(s + Unsafe.As<string>(v2)); break;
-                    case string[] a: if (ValidateType<string[]>(v2)) stack.Push(a.Concat(Unsafe.As<string[]>(v2))); break;
-                    default: Err("Arguments must be either int, string or string[]"); break;
-                }
-                break;
-            case ADDI:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                stack.Push((int)v1 + (int)v2);
-                break;
-            case ADDS:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                stack.Push(Unsafe.As<string>(v1) + Unsafe.As<string>(v2));
-                break;
-            case ADDA:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                stack.Push(Unsafe.As<string[]>(v1).Concat(Unsafe.As<string[]>(v2)));
-                break;
-            case AND:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                if (ValidateType<bool>(v1, v2)) stack.Push((bool)v1 && (bool)v2);
-                break;
-            case ANDB:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                stack.Push((bool)v1 && (bool)v2);
-                break;
-            case OR:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                if (ValidateType<bool>(v1, v2)) stack.Push((bool)v1 || (bool)v2);
-                break;
-            case ORB:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                stack.Push((bool)v1 || (bool)v2);
-                break;
-            case NEGATE:
-                v1 = stack.Pop();
-                if (ValidateType<int>(v1)) stack.Push(-(int)v1);
-                break;
-            case NEGATEI:
-                v1 = stack.Pop();
-                stack.Push(-(int)v1);
-                break;
-            case NOT:
-                v1 = stack.Pop();
-                if (ValidateType<bool>(v1)) stack.Push(!(bool)v1);
-                break;
-            case NOTB:
-                v1 = stack.Pop();
-                stack.Push(!(bool)v1);
-                break;
-            case PRINT:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                if (ValidateType<int>(v1) && ValidateType<string>(v2))
-                {
+            string name;
+            object v1, v2;
+            int num1;
+            bool b;
+            ushort idx;
+            Result result;
+            OpCode nextOp = (OpCode)NextByte();
+            switch (nextOp)
+            {
+                case CONSTANT: stack.Push(constants[NextByte()]); break;
+                case TRUE: stack.Push(true); break;
+                case FALSE: stack.Push(false); break;
+                case POP: stack.Pop(); break;
+                case GET:
+                    idx = NextShort();
+                    if (initVar[idx])
+                        stack.Push(variables[idx]);
+                    else
+                        Err("Tried to get a variable that was not yet initialized");
+                    break;
+                case SET:
+                    v1 = stack.Pop();
+                    idx = NextShort();
+                    variables[idx] = v1;
+                    initVar[idx] = true;
+                    return;
+                case EQUAL:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    stack.Push(v1.Equals(v2));
+                    break;
+                case NOT_EQUAL:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    stack.Push(!v1.Equals(v2));
+                    break;
+                case GREATER:
+                case GREATER_EQUAL:
+                case LESS:
+                case LESS_EQUAL:
+                case SUBTRACT:
+                case MULTIPLY:
+                case DIVIDE:
+                    BinaryArithmetic(nextOp);
+                    break;
+                case GREATERI:
+                case GREATER_EQUALI:
+                case LESSI:
+                case LESS_EQUALI:
+                case SUBTRACTI:
+                case MULTIPLYI:
+                case DIVIDEI:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    BinaryArithmeticUnchecked(nextOp, (int)v1, (int)v2);
+                    break;
+                case ADD:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    switch (v1)
+                    {
+                        case int n: if (ValidateType<int>(v2)) stack.Push(n + (int)v2); break;
+                        case string s: if (ValidateType<string>(v2)) stack.Push(s + Unsafe.As<string>(v2)); break;
+                        case string[] a: if (ValidateType<string[]>(v2)) stack.Push(a.Concat(Unsafe.As<string[]>(v2))); break;
+                        default: Err("Arguments must be either int, string or string[]"); break;
+                    }
+                    break;
+                case ADDI:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    stack.Push((int)v1 + (int)v2);
+                    break;
+                case ADDS:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    stack.Push(Unsafe.As<string>(v1) + Unsafe.As<string>(v2));
+                    break;
+                case ADDA:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    stack.Push(Unsafe.As<string[]>(v1).Concat(Unsafe.As<string[]>(v2)));
+                    break;
+                case AND:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    if (ValidateType<bool>(v1, v2)) stack.Push((bool)v1 && (bool)v2);
+                    break;
+                case ANDB:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    stack.Push((bool)v1 && (bool)v2);
+                    break;
+                case OR:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    if (ValidateType<bool>(v1, v2)) stack.Push((bool)v1 || (bool)v2);
+                    break;
+                case ORB:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    stack.Push((bool)v1 || (bool)v2);
+                    break;
+                case NEGATE:
+                    v1 = stack.Pop();
+                    if (ValidateType<int>(v1)) stack.Push(-(int)v1);
+                    break;
+                case NEGATEI:
+                    v1 = stack.Pop();
+                    stack.Push(-(int)v1);
+                    break;
+                case NOT:
+                    v1 = stack.Pop();
+                    if (ValidateType<bool>(v1)) stack.Push(!(bool)v1);
+                    break;
+                case NOTB:
+                    v1 = stack.Pop();
+                    stack.Push(!(bool)v1);
+                    break;
+                case PRINT:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
+                    if (ValidateType<int>(v1) && ValidateType<string>(v2))
+                    {
+                        if ((!outputs?[(int)v1].PushInput(Unsafe.As<string>(v2))) ?? true)
+                        {
+                            stack.Push(v1);
+                            stack.Push(v2);
+                            nextInstruction--;
+                            State = NodeState.BLOCKED;
+                        }
+                        else
+                        {
+                            State = NodeState.RUNNING;
+                        }
+                    }
+                    return;
+                case PRINTIS:
+                    v2 = stack.Pop();
+                    v1 = stack.Pop();
                     if ((!outputs?[(int)v1].PushInput(Unsafe.As<string>(v2))) ?? true)
                     {
                         stack.Push(v1);
@@ -221,78 +233,62 @@ internal class RegularNode : Node
                     {
                         State = NodeState.RUNNING;
                     }
-                }
-                return true;
-            case PRINTIS:
-                v2 = stack.Pop();
-                v1 = stack.Pop();
-                if ((!outputs?[(int)v1].PushInput(Unsafe.As<string>(v2))) ?? true)
-                {
-                    stack.Push(v1);
-                    stack.Push(v2);
-                    nextInstruction--;
-                    State = NodeState.BLOCKED;
-                }
-                else
-                {
-                    State = NodeState.RUNNING;
-                }
-                return true;
-            case JUMP:
-                nextInstruction += NextShort();
-                return true;
-            case JUMP_IF_FALSE:
-                v1 = stack.Pop();
-                b = v1 switch
-                {
-                    int i => i != 0,
-                    bool l => l,
-                    string s => s.Length != 0,
-                    string[] a => a.Length != 0,
-                    _ => false,
-                };
-                ushort jump_val = NextShort();
-                if (!b)
-                    nextInstruction += jump_val;
-                return true;
-            case CALL:
-                name = (string)constants[Advance()];
-                num1 = Advance();
-                if (!NativeFuncs.NativeFunctions.TryGetValue(name, out NativeDelegate? func))
-                {
-                    Err($"Function {name} does not exist");
+                    return;
+                case JUMP:
+                    nextInstruction += NextShort();
+                    return;
+                case JUMP_IF_FALSE:
+                    v1 = stack.Pop();
+                    b = v1 switch
+                    {
+                        int i => i != 0,
+                        bool l => l,
+                        string s => s.Length != 0,
+                        string[] a => a.Length != 0,
+                        _ => false,
+                    };
+                    ushort jump_val = NextShort();
+                    if (!b)
+                        nextInstruction += jump_val;
+                    return;
+                case CALL:
+                    name = (string)constants[NextByte()];
+                    num1 = NextByte();
+                    if (!NativeFuncs.NativeFunctions.TryGetValue(name, out NativeDelegate? func))
+                    {
+                        Err($"Function {name} does not exist");
+                        break;
+                    }
+                    result = CallFunc(func, num1);
+                    if (!result.Success())
+                        Err(result.message!);
+                    else
+                        stack.Push(result.GetValue()!);
                     break;
-                }
-                result = CallFunc(func, num1);
-                if (!result.Success())
-                    Err(result.message!);
-                else
-                    stack.Push(result.GetValue()!);
-                break;
-            case CALL_TYPE_KNOWN:
-                name = (string)constants[Advance()];
-                num1 = Advance();
-                if (!NativeFuncsKnownType.NativeFunctions.TryGetValue(name, out NativeDelegate? knownFunc))
-                {
-                    Err($"Function {name} does not exist");
+                case CALL_TYPE_KNOWN:
+                    name = (string)constants[NextByte()];
+                    num1 = NextByte();
+                    if (!NativeFuncsKnownType.NativeFunctions.TryGetValue(name, out NativeDelegate? knownFunc))
+                    {
+                        Err($"Function {name} does not exist");
+                        break;
+                    }
+                    result = CallFunc(knownFunc, num1);
+                    if (!result.Success())
+                        Err(result.message!);
+                    else
+                        stack.Push(result.GetValue()!);
                     break;
-                }
-                result = CallFunc(knownFunc, num1);
-                if (!result.Success())
-                    Err(result.message!);
-                else
-                    stack.Push(result.GetValue()!);
-                break;
-            case RETURN:
-                State = NodeState.IDLE;
-                initVar.SetAll(false);
-                initVar[0] = true;
-                initVar[1] = true;
-                return true;
-            case ENDIF:
-            case NOP: return true;
+                case RETURN:
+                    State = NodeState.IDLE;
+                    initVar.SetAll(false);
+                    initVar[INPUT_VARIABLE_IDX] = true;
+                    initVar[MEM_VARIABLE_IDX] = true;
+                    return;
+                case ENDIF:
+                case NOP: return;
+            }
         }
-        return false;
     }
 
     public override void Reset()
@@ -304,8 +300,8 @@ internal class RegularNode : Node
         InitGlobals();
     }
 
-    private byte Advance() => code[nextInstruction++];
-    private ushort NextShort() => (ushort)((Advance() << 8) | (Advance() & 0xff));
+    private byte NextByte() => code[nextInstruction++];
+    private ushort NextShort() => (ushort)((NextByte() << 8) | (NextByte() & 0xff));
 
     private void BinaryArithmetic(OpCode op)
     {
