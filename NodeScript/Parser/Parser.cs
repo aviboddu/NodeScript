@@ -3,6 +3,7 @@ namespace NodeScript;
 using static TokenType;
 using static CompilerUtils;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 
 [DebuggerDisplay("currentLine = {currentLine, nq}, currentToken = {currentToken, nq}")]
 internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
@@ -263,7 +264,7 @@ internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
 
         if (Match(STRING))
         {
-            return new Literal(Previous().Lexeme[1..^1].ToString());
+            return new Literal(Regex.Unescape(Previous().Lexeme[1..^1].ToString()));
         }
 
         if (Match(LEFT_PAREN))
