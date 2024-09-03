@@ -176,7 +176,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                         // The JUMP at the else index is called at the end of the IF block.
                         // So we need this to jump to the end of the if statement, skipping the ELSE block
                         elseIdx = elseStmts.Pop();
-                        diff = (ushort)(opNo - elseIdx);
+                        diff = (ushort)(opNo - 2 - elseIdx);
                         bytes[elseIdx] = (byte)(diff >> 8);
                         bytes[elseIdx + 1] = (byte)(diff & 0xFF);
                     }

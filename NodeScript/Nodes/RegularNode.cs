@@ -89,7 +89,7 @@ internal class RegularNode : Node
             object v1, v2;
             int num1;
             bool b;
-            ushort idx;
+            ushort idx, jump_val;
             Result result;
             OpCode nextOp = (OpCode)NextByte();
             switch (nextOp)
@@ -237,7 +237,8 @@ internal class RegularNode : Node
                     }
                     return;
                 case JUMP:
-                    nextInstruction += NextShort();
+                    jump_val = NextShort();
+                    nextInstruction += jump_val;
                     return;
                 case JUMP_IF_FALSE:
                     v1 = stack.Pop();
@@ -249,7 +250,7 @@ internal class RegularNode : Node
                         string[] a => a.Length != 0,
                         _ => false,
                     };
-                    ushort jump_val = NextShort();
+                    jump_val = NextShort();
                     if (!b)
                         nextInstruction += jump_val;
                     return;
