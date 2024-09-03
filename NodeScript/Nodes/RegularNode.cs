@@ -139,14 +139,14 @@ internal class RegularNode : Node
                 case DIVIDEI:
                     v2 = stack.Pop();
                     v1 = stack.Pop();
-                    BinaryArithmeticUnchecked(nextOp, (int)v1, (int)v2);
+                    BinaryArithmeticUnchecked(nextOp, Unsafe.Unbox<int>(v1), Unsafe.Unbox<int>(v2));
                     break;
                 case ADD:
                     v2 = stack.Pop();
                     v1 = stack.Pop();
                     switch (v1)
                     {
-                        case int n: if (ValidateType<int>(v2)) stack.Push(n + (int)v2); break;
+                        case int n: if (ValidateType<int>(v2)) stack.Push(n + Unsafe.Unbox<int>(v2)); break;
                         case string s: if (ValidateType<string>(v2)) stack.Push(s + Unsafe.As<string>(v2)); break;
                         case string[] a: if (ValidateType<string[]>(v2)) stack.Push(a.Concat(Unsafe.As<string[]>(v2))); break;
                         default: Err("Arguments must be either int, string or string[]"); break;
@@ -155,7 +155,7 @@ internal class RegularNode : Node
                 case ADDI:
                     v2 = stack.Pop();
                     v1 = stack.Pop();
-                    stack.Push((int)v1 + (int)v2);
+                    stack.Push(Unsafe.Unbox<int>(v1) + Unsafe.Unbox<int>(v2));
                     break;
                 case ADDS:
                     v2 = stack.Pop();
@@ -170,45 +170,45 @@ internal class RegularNode : Node
                 case AND:
                     v2 = stack.Pop();
                     v1 = stack.Pop();
-                    if (ValidateType<bool>(v1, v2)) stack.Push((bool)v1 && (bool)v2);
+                    if (ValidateType<bool>(v1, v2)) stack.Push(Unsafe.Unbox<bool>(v1) && Unsafe.Unbox<bool>(v2));
                     break;
                 case ANDB:
                     v2 = stack.Pop();
                     v1 = stack.Pop();
-                    stack.Push((bool)v1 && (bool)v2);
+                    stack.Push(Unsafe.Unbox<bool>(v1) && Unsafe.Unbox<bool>(v2));
                     break;
                 case OR:
                     v2 = stack.Pop();
                     v1 = stack.Pop();
-                    if (ValidateType<bool>(v1, v2)) stack.Push((bool)v1 || (bool)v2);
+                    if (ValidateType<bool>(v1, v2)) stack.Push(Unsafe.Unbox<bool>(v1) || Unsafe.Unbox<bool>(v2));
                     break;
                 case ORB:
                     v2 = stack.Pop();
                     v1 = stack.Pop();
-                    stack.Push((bool)v1 || (bool)v2);
+                    stack.Push(Unsafe.Unbox<bool>(v1) || Unsafe.Unbox<bool>(v2));
                     break;
                 case NEGATE:
                     v1 = stack.Pop();
-                    if (ValidateType<int>(v1)) stack.Push(-(int)v1);
+                    if (ValidateType<int>(v1)) stack.Push(-Unsafe.Unbox<int>(v1));
                     break;
                 case NEGATEI:
                     v1 = stack.Pop();
-                    stack.Push(-(int)v1);
+                    stack.Push(-Unsafe.Unbox<int>(v1));
                     break;
                 case NOT:
                     v1 = stack.Pop();
-                    if (ValidateType<bool>(v1)) stack.Push(!(bool)v1);
+                    if (ValidateType<bool>(v1)) stack.Push(!Unsafe.Unbox<bool>(v1));
                     break;
                 case NOTB:
                     v1 = stack.Pop();
-                    stack.Push(!(bool)v1);
+                    stack.Push(!Unsafe.Unbox<bool>(v1));
                     break;
                 case PRINT:
                     v2 = stack.Pop();
                     v1 = stack.Pop();
                     if (ValidateType<int>(v1) && ValidateType<string>(v2))
                     {
-                        if ((!outputs?[(int)v1].PushInput(Unsafe.As<string>(v2))) ?? true)
+                        if ((!outputs?[Unsafe.Unbox<int>(v1)].PushInput(Unsafe.As<string>(v2))) ?? true)
                         {
                             stack.Push(v1);
                             stack.Push(v2);
@@ -224,7 +224,7 @@ internal class RegularNode : Node
                 case PRINTIS:
                     v2 = stack.Pop();
                     v1 = stack.Pop();
-                    if ((!outputs?[(int)v1].PushInput(Unsafe.As<string>(v2))) ?? true)
+                    if ((!outputs?[Unsafe.Unbox<int>(v1)].PushInput(Unsafe.As<string>(v2))) ?? true)
                     {
                         stack.Push(v1);
                         stack.Push(v2);
@@ -314,7 +314,7 @@ internal class RegularNode : Node
         if (!ValidateType<int>(val1, val2))
             return;
 
-        BinaryArithmeticUnchecked(op, (int)val1, (int)val2);
+        BinaryArithmeticUnchecked(op, Unsafe.Unbox<int>(val1), Unsafe.Unbox<int>(val2));
     }
 
     private void BinaryArithmeticUnchecked(OpCode op, int num1, int num2)
@@ -350,7 +350,7 @@ internal class RegularNode : Node
         int paramsToAdd = numParams;
         while (paramsToAdd-- > 0)
             parameters[paramsToAdd] = stack.Pop();
-        return func(parameters.AsSpan().Slice(0, numParams));
+        return func(parameters.AsSpan()[..numParams]);
     }
 
     public override Node[] OutputNodes()
