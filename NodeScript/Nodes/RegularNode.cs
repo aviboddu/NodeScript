@@ -28,7 +28,7 @@ internal class RegularNode : Node
     {
         code = compiledData.Code;
         constants = compiledData.Constants;
-        lines = CumulativeInstructionsPerLine(compiledData.Lines);
+        lines = compiledData.Lines;
         variables = new object[compiledData.NumVariables];
         initVar = new(compiledData.NumVariables);
         this.outputs = outputs;
@@ -44,21 +44,6 @@ internal class RegularNode : Node
 
         variables[MEM_VARIABLE_IDX] = string.Empty; // mem
         initVar[MEM_VARIABLE_IDX] = true;
-    }
-
-    private static int[] CumulativeInstructionsPerLine(int[] line)
-    {
-        int[] result = new int[line[^1] + 1];
-
-        // Frequency Count
-        for (int i = 0; i < line.Length; i++)
-            result[line[i]]++;
-
-        // Cumulative Frequency
-        for (int i = 1; i < result.Length; i++)
-            result[i] += result[i - 1];
-
-        return result;
     }
 
     public int GetCurrentLine() => GetLine(nextInstruction - 1);

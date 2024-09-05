@@ -41,7 +41,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
         // Insert an additional return operation just in case the user didn't include one at the end.    
         bytes.Add((byte)OpCode.RETURN);
         lines.Add(lines[^1]);
-        return new([.. bytes], [.. constants], [.. lines], variables.Count);
+        return new([.. bytes], [.. constants], CumulativeInstructionsPerLine(lines), variables.Count);
     }
 
     private bool CompileLine()
@@ -193,6 +193,21 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
             }
         }
         return true;
+    }
+
+    private static int[] CumulativeInstructionsPerLine(List<int> line)
+    {
+        int[] result = new int[line[^1] + 1];
+
+        // Frequency Count
+        for (int i = 0; i < line.Count; i++)
+            result[line[i]]++;
+
+        // Cumulative Frequency
+        for (int i = 1; i < result.Length; i++)
+            result[i] += result[i - 1];
+
+        return result;
     }
 
     // This class will visit expressions in post-order and emit the appropriate bytecode depending on the type of expression
