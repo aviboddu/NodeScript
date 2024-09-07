@@ -1,5 +1,6 @@
 namespace NodeScript;
 
+using System.Buffers;
 using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -18,8 +19,6 @@ internal class RegularNode : Node
     private readonly object[] variables;
     private readonly BitArray initVar;
     private readonly int[] lines;
-
-    private object[] parameters = new object[3];
 
     private int nextInstruction = 0;
     private bool panic = false;
@@ -330,12 +329,13 @@ internal class RegularNode : Node
 
     private Result CallFunc(NativeDelegate func, int numParams)
     {
-        if (parameters.Length < numParams)
-            parameters = new object[numParams];
+        object[] parameters = ArrayPool<object>.Shared.Rent(numParams);
         int paramsToAdd = numParams;
         while (paramsToAdd-- > 0)
             parameters[paramsToAdd] = stack.Pop();
-        return func(parameters.AsSpan()[..numParams]);
+        Result res = func(parameters.AsSpan()[..numParams]);
+        ArrayPool<object>.Shared.Return(parameters);
+        return res;
     }
 
     public override Node[] OutputNodes()
