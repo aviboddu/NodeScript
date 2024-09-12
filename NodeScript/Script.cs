@@ -1,6 +1,9 @@
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 using static NodeScript.CompilerUtils;
+
 [assembly: CLSCompliant(true)]
+[assembly: InternalsVisibleTo("NodeScriptTest")]
 
 namespace NodeScript;
 
@@ -112,6 +115,7 @@ public class Script()
                 break;
             case RegularNodeData:
                 nodeData.Outputs ??= [];
+                if (nodeData.Outputs.Contains(outputId)) throw new ArgumentException("Cannot make the same connection twice");
                 nodeData.Outputs = [.. nodeData.Outputs, outputId];
                 break;
         }
