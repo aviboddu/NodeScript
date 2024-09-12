@@ -1,7 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.Json.Serialization.Metadata;
-using System.Xml.Serialization;
 using NodeScript;
 
 namespace NodeScriptTest;
@@ -9,8 +6,8 @@ namespace NodeScriptTest;
 [TestClass]
 public class Serialization
 {
-    private const string FOLDER_PATH = "../../../TestData/";
-    private readonly string filePath = FOLDER_PATH + "Serialization/Serialization";
+    private static readonly string FOLDER_PATH = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TestData", "Serialization");
+    private readonly string filePath = Path.Combine(FOLDER_PATH, "Serialization");
 
     [TestMethod]
     public void SerializationTest()
