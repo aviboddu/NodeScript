@@ -38,16 +38,31 @@ public class ErroringTests
     [TestMethod]
     public void FailedTokenization()
     {
-        string code = File.ReadAllText(Path.Combine(FOLDER_PATH, "Tokenization", "UnterminatedString.ns"));
-        bool had_error = false;
-        Tokenizer tokenizer = new(code, (int line, string message) => had_error = true);
-        tokenizer.ScanTokens();
-        Assert.IsTrue(had_error);
+        string folder = Path.Combine(FOLDER_PATH, "Tokenization");
+        foreach (string fileName in Directory.EnumerateFiles(folder))
+        {
+            string filePath = Path.Combine(folder, fileName);
+            string code = File.ReadAllText(filePath);
+            bool had_error = false;
+            Tokenizer tokenizer = new(code, (int line, string message) => had_error = true);
+            tokenizer.ScanTokens();
+            Assert.IsTrue(had_error);
+        }
+    }
 
-        code = File.ReadAllText(Path.Combine(FOLDER_PATH, "Tokenization", "UnexpectedCharacter.ns"));
-        had_error = false;
-        tokenizer = new(code, (int line, string message) => had_error = true);
-        tokenizer.ScanTokens();
-        Assert.IsTrue(had_error);
+    [TestMethod]
+    public void FailedParsing()
+    {
+        string folder = Path.Combine(FOLDER_PATH, "Parsing");
+        foreach (string fileName in Directory.EnumerateFiles(folder))
+        {
+            string code = File.ReadAllText(Path.Combine(folder, fileName));
+            bool had_error = false;
+            Tokenizer tokenizer = new(code, (_, message) => throw new AssertFailedException($"{fileName} : {message}"));
+            Token[][] tokens = tokenizer.ScanTokens();
+            Parser parser = new(tokens, (_, _) => had_error = true);
+            parser.Parse();
+            Assert.IsTrue(had_error);
+        }
     }
 }

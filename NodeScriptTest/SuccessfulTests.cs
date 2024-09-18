@@ -22,7 +22,7 @@ public class SuccessfulTests()
 
         script.CompileNodes();
         script.Run();
-        Assert.AreEqual(expectedOutput, script.GetOutput());
+        Assert.AreEqual(expectedOutput.ReplaceLineEndings(), script.GetOutput());
     }
 
     private static void CompileError(int id, int line, string message)

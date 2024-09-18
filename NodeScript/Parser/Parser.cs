@@ -63,7 +63,6 @@ internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
                 Consume(COMMA, "Expect comma between expressions");
         }
 
-        // Parse a semicolon to end the line
         if (!IsAtEnd())
         {
             errorHandler.Invoke(currentLine, $"Unexpected token, "
