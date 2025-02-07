@@ -69,11 +69,11 @@ internal class RegularNode : Node
         if (State == NodeState.IDLE) return;
         while (!panic)
         {
-            string name;
             object v1, v2;
             int num1;
             bool b;
             ushort idx, jump_val;
+            NativeDelegate func;
             Result result;
             OpCode nextOp = (OpCode)NextByte();
             switch (nextOp)
@@ -238,29 +238,11 @@ internal class RegularNode : Node
                     if (!b)
                         nextInstruction += jump_val;
                     return;
-                case CALL:
-                    name = (string)constants[NextByte()];
-                    num1 = NextByte();
-                    if (!NativeFuncs.NativeFunctions.TryGetValue(name, out NativeDelegate? func))
-                    {
-                        Err($"Function {name} does not exist");
-                        break;
-                    }
-                    result = CallFunc(func, num1);
-                    if (!result.Success())
-                        Err(result.message!);
-                    else
-                        stack.Push(result.GetValue()!);
-                    break;
                 case CALL_TYPE_KNOWN:
-                    name = (string)constants[NextByte()];
+                case CALL:
+                    func = (NativeDelegate)constants[NextByte()];
                     num1 = NextByte();
-                    if (!NativeFuncsKnownType.NativeFunctions.TryGetValue(name, out NativeDelegate? knownFunc))
-                    {
-                        Err($"Function {name} does not exist");
-                        break;
-                    }
-                    result = CallFunc(knownFunc, num1);
+                    result = CallFunc(func, num1);
                     if (!result.Success())
                         Err(result.message!);
                     else

@@ -307,10 +307,12 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
             funcName.Append(NativeFuncsKnownType.typeToStr[expr.Variable.Type]);
             foreach (Expr ex in expr.Arguments)
                 funcName.Append(NativeFuncsKnownType.typeToStr[ex.Type]);
-            if (NativeFuncsKnownType.NativeFunctions.ContainsKey(funcName.ToString()))
-                Emit(OpCode.CALL_TYPE_KNOWN, MakeConst(funcName.ToString()), (byte)(expr.Arguments.Length + 1));
+            if (NativeFuncsKnownType.NativeFunctions.TryGetValue(funcName.ToString(), out NativeDelegate? value))
+                Emit(OpCode.CALL_TYPE_KNOWN, MakeConst(value), (byte)(expr.Arguments.Length + 1));
+            else if (NativeFuncs.NativeFunctions.TryGetValue(f, out value))
+                Emit(OpCode.CALL, MakeConst(value), (byte)(expr.Arguments.Length + 1));
             else
-                Emit(OpCode.CALL, MakeConst(f), (byte)(expr.Arguments.Length + 1));
+                return false;
             return true;
         }
 
@@ -318,13 +320,16 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
         {
             if (!expr.Arguments.All((e) => e.Accept(this))) return false;
 
+
             StringBuilder funcName = new(expr.Callee.Name.Lexeme.ToString());
             foreach (Expr ex in expr.Arguments)
                 funcName.Append(NativeFuncsKnownType.typeToStr[ex.Type]);
             if (NativeFuncsKnownType.NativeFunctions.TryGetValue(funcName.ToString(), out NativeDelegate? value))
-                Emit(OpCode.CALL_TYPE_KNOWN, MakeConst(funcName.ToString()), (byte)expr.Arguments.Count);
+                Emit(OpCode.CALL, MakeConst(value), (byte)expr.Arguments.Count);
+            else if (NativeFuncs.NativeFunctions.TryGetValue(expr.Callee.Name.Lexeme.ToString(), out value))
+                Emit(OpCode.CALL, MakeConst(value), (byte)expr.Arguments.Count);
             else
-                Emit(OpCode.CALL, MakeConst(expr.Callee.Name.Lexeme.ToString()), (byte)expr.Arguments.Count);
+                return false;
             return true;
         }
 
