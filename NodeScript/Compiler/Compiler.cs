@@ -328,9 +328,8 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
 
         public bool VisitCallExpr(Call expr)
         {
-            c.stackSize -= expr.Arguments.Count - 1;
             if (!expr.Arguments.All((e) => e.Accept(this))) return false;
-
+            c.stackSize -= expr.Arguments.Count - 1;
 
             StringBuilder funcName = new(expr.Callee.Name.Lexeme.ToString());
             foreach (Expr ex in expr.Arguments)
