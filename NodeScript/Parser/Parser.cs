@@ -255,7 +255,7 @@ internal class Parser(Token[][] tokens, InternalErrorHandler errorHandler)
 
         if (Match(NUMBER))
         {
-            if (int.TryParse(Previous().Lexeme, out int val))
+            if (int.TryParse(Previous().Lexeme, System.Globalization.NumberStyles.None, provider: null, out int val))
                 return new Literal(val);
             else
                 errorHandler(currentLine, "Failed to parse integer literal");

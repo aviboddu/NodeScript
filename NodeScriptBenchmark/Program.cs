@@ -49,9 +49,9 @@ namespace NodeScriptBenchmark
 
     public class Program
     {
-        public static void Main()
+        public static void Main(string[] args)
         {
-            BenchmarkRunner.Run<Benchmark>();
+            BenchmarkRunner.Run<Benchmark>(args: args);
         }
     }
 }

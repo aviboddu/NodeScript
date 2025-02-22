@@ -52,9 +52,9 @@ internal static class NativeFuncsKnownType
         string[] a = Unsafe.As<string[]>(objs[0]);
         int start = (int)objs[1];
         int end = (int)objs[2];
-        if (end <= start) return Result<string[]>.Fail("slice: end value must be larger than start value");
-        if (start < 0) return Result<string[]>.Fail("slice: start must be non-negative");
-        if (end > a.Length) return Result<string[]>.Fail($"slice: string is only length {a.Length}");
+        if (end <= start) return Result<string[]>.Fail("end index must be greater than start index");
+        if (start < 0) return Result<string[]>.Fail("start must be non-negative");
+        if (end > a.Length) return Result<string[]>.Fail($"array length is only {a.Length}");
         return Result<string[]>.Ok(a[start..end]);
     }
 
@@ -63,9 +63,9 @@ internal static class NativeFuncsKnownType
         string s = Unsafe.As<string>(objs[0]);
         int start = (int)objs[1];
         int end = (int)objs[2];
-        if (end <= start) return Result<string>.Fail("slice: end value must be larger than start value");
-        if (start < 0) return Result<string>.Fail("slice: start must be non-negative");
-        if (end > s.Length) return Result<string>.Fail($"slice: string is only length {s.Length}");
+        if (end <= start) return Result<string>.Fail("end index must be greater than start index");
+        if (start < 0) return Result<string>.Fail("start index must be non-negative");
+        if (end > s.Length) return Result<string>.Fail($"string is only length {s.Length}");
         return Result<string>.Ok(s[start..end]);
     }
 
@@ -104,7 +104,7 @@ internal static class NativeFuncsKnownType
     {
         string[] a = Unsafe.As<string[]>(objs[0]);
         int i = (int)objs[1];
-        if (a.Length <= i || i < 0) return Result<string[]>.Fail($"array does not have index {i}");
+        if (a.Length <= i || i < 0) return Result<string[]>.Fail($"index {i} is out of bounds");
         string[] list = new string[a.Length - 1];
         for (int j = 0; j < i; j++)
             list[j] = a[j];

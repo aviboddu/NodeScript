@@ -7,7 +7,7 @@ internal abstract class Result(string? message = null)
     public abstract bool Success();
 }
 
-internal class Result<T> : Result
+internal sealed class Result<T> : Result
 {
     private readonly object? value;
 

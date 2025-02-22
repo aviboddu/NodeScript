@@ -1,0 +1,9 @@
+[*.{cs,vb}]
+
+# IDE0130: Namespace does not match folder structure
+dotnet_diagnostic.IDE0130.severity = none
+[*.cs]
+
+# IDE0160: Convert to block scoped namespace
+csharp_style_namespace_declarations = file_scoped
+[*.cs]

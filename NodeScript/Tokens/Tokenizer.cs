@@ -22,7 +22,7 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
             // We are at the beginning of the next lexeme.
             ScanToken();
         }
-        return tokens.Select(Enumerable.ToArray).ToArray();
+        return [.. tokens.Select(Enumerable.ToArray)];
     }
 
     private void ScanToken()
@@ -77,24 +77,20 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
 
     private void String()
     {
-        while (!IsAtEnd() && Peek() != '"')
+        if (PeekNext() == '\0')
         {
-            if (Peek() == '\n')
-            {
-                Err(line, "Unterminated string");
-                return;
-            }
-            Advance();
+            Err(line, "Unterminated string.");
+            return;
         }
-
-        if (IsAtEnd())
+        int newLineLoc = source.IndexOf('\n', current);
+        int quoteLoc = source.IndexOf('"', current);
+        if (quoteLoc == -1 || (newLineLoc != -1 && newLineLoc < quoteLoc))
         {
-            Err(line, "Unterminated string");
+            Err(line, "Unterminated string.");
             return;
         }
 
-        // The closing quote.
-        Advance();
+        current = quoteLoc + 1;
         AddToken(STRING);
     }
 
@@ -130,7 +126,7 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
 
     private TokenType CheckKeyword(string keyword, TokenType type)
     {
-        if (current - start == keyword.Length && source[start..current] == keyword)
+        if (source.AsSpan(start, current - start).Equals(keyword.AsSpan(), StringComparison.Ordinal))
             return type;
 
         return IDENTIFIER;
@@ -141,7 +137,6 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
     private bool IsAtEnd() => current >= source.Length;
 
     private char Advance() => source[current++];
-
     private char Peek() => source[current];
     private char PeekNext()
     {
@@ -164,11 +159,6 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
             char c = Peek();
             switch (c)
             {
-                case ' ':
-                case '\r':
-                case '\t':
-                    Advance();
-                    break;
                 case '\n':
                     line++;
                     tokens.Add([]);
@@ -176,13 +166,23 @@ internal class Tokenizer(string source, InternalErrorHandler compileError)
                     break;
                 case '/':
                     if (PeekNext() == '/')
+                    {
                         // A comment goes until the end of the line.
-                        while (!IsAtEnd() && Peek() != '\n') Advance();
+                        int newLineLoc = source.IndexOf('\n', current);
+                        if (newLineLoc == -1)
+                            current = source.Length;
+                        else
+                            current = newLineLoc;
+                    }
                     else
                         return;
                     break;
                 default:
-                    return;
+                    if (char.IsWhiteSpace(c))
+                        Advance();
+                    else
+                        return;
+                    break;
             }
         }
     }

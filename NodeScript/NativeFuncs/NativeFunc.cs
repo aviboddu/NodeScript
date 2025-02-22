@@ -59,11 +59,15 @@ internal static class NativeFuncs
         if (!(objs[0] is string || objs[0] is string[]) || objs[1] is not int || objs[2] is not int)
             return Result<object>.Fail("slice takes one string or string array and two ints");
 
-        int start = (int)objs[1];
-        int end = (int)objs[2];
         if (objs[0] is string s)
-            return Result<object>.Ok(s.Substring(start, end));
-        return Result<object>.Ok(((string[])objs[0])[start..end]);
+        {
+            Result<string> strRes = slice_str_int_int(objs);
+            if (!strRes.Success()) return Result<object>.Fail(strRes.message!);
+            return Result<object>.Ok(strRes.GetValue()!);
+        }
+        Result<string[]> res = slice_stra_int_int(objs);
+        if (!res.Success()) return Result<object>.Fail(res.message!);
+        return Result<object>.Ok(res.GetValue()!);
     }
 
     public static Result<string> element_at(Span<object> objs)

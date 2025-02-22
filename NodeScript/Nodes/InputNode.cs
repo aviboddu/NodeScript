@@ -5,6 +5,7 @@ namespace NodeScript;
 [DebuggerDisplay("nextLine = {nextLine}")]
 internal class InputNode : Node
 {
+    private static readonly char[] separators = ['\r', '\n'];
     public Node? output;
 
     private readonly string[] inputLines;
@@ -12,8 +13,7 @@ internal class InputNode : Node
 
     public InputNode(string input, Node? output = null)
     {
-        char[] splitters = ['\n', '\r'];
-        inputLines = input.Split(splitters, options: StringSplitOptions.RemoveEmptyEntries);
+        inputLines = input.Split(separators, StringSplitOptions.RemoveEmptyEntries);
         this.output = output;
         nextLine = 0;
         State = NodeState.RUNNING;

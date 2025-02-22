@@ -5,6 +5,8 @@ using System.Diagnostics;
 using static TokenType;
 using static CompilerUtils;
 using System.Text;
+using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 
 [DebuggerDisplay("currentLine = {currentLine, nq}")]
 internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandler)
@@ -16,6 +18,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
     private List<byte> bytes = [];
     private List<int> lines = [];
     private Dictionary<string, ushort> variables = [];
+    private byte[]? compiledBytes;
     private int stackSize = 0;
     private int maxStackSize = 0;
 
@@ -37,14 +40,14 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                 return new([], [], [], 0, 0);
             currentLine++;
         }
+        // Insert an additional return operation just in case the user didn't include one at the end.    
+        compiledBytes = [.. bytes, (byte)OpCode.RETURN];
 
         if (!PatchJumps())
             return new([], [], [], 0, 0);
 
-        // Insert an additional return operation just in case the user didn't include one at the end.    
-        bytes.Add((byte)OpCode.RETURN);
         lines.Add(lines[^1]);
-        return new([.. bytes], [.. constants], CumulativeInstructionsPerLine(lines), variables.Count, maxStackSize);
+        return new(compiledBytes, [.. constants], CumulativeInstructionsPerLine(lines), variables.Count, maxStackSize);
     }
 
     private bool CompileLine()
@@ -140,7 +143,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
         // We iterate through all instructions and find JUMP or JUMP_IF_FALSE operations.
         for (int opNo = 0; opNo < bytes.Count; opNo++)
         {
-            OpCode opCode = (OpCode)bytes[opNo];
+            OpCode opCode = (OpCode)compiledBytes![opNo];
             switch (opCode)
             {
                 case OpCode.CONSTANT: opNo++; break;
@@ -165,8 +168,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                     // Technically this is the difference between the respective beginnings of the jump offsets, 
                     //      but that's equal to the difference between the respective ends of the jump offsets (ie the following instruction).
                     diff = (ushort)(opNo + 1 - ifIdx);
-                    bytes[ifIdx] = (byte)(diff >> 8);
-                    bytes[ifIdx + 1] = (byte)(diff & 0xFF);
+                    MemoryMarshal.Write(compiledBytes.AsSpan(ifIdx, 2), in diff);
                     ifStmts.Push((ifIdx, true));
                     opNo += 2;
                     break;
@@ -183,15 +185,13 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                         // So we need this to jump to the end of the if statement, skipping the ELSE block
                         elseIdx = elseStmts.Pop();
                         diff = (ushort)(opNo - 2 - elseIdx);
-                        bytes[elseIdx] = (byte)(diff >> 8);
-                        bytes[elseIdx + 1] = (byte)(diff & 0xFF);
+                        MemoryMarshal.Write(compiledBytes.AsSpan(elseIdx, 2), in diff);
                     }
                     else
                     {
                         // The IF block will be skipped if the condition is false (ie the JUMP_IF_FALSE operation)
                         diff = (ushort)(opNo - 2 - ifIdx);
-                        bytes[ifIdx] = (byte)(diff >> 8);
-                        bytes[ifIdx + 1] = (byte)(diff & 0xFF);
+                        MemoryMarshal.Write(compiledBytes.AsSpan(ifIdx, 2), in diff);
                     }
                     break;
                 case OpCode.CALL:
@@ -414,7 +414,9 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                 i = (ushort)variables.Count;
                 variables.Add(name, i);
             }
-            return [(byte)(i >> 8), (byte)(i & 0xff)];
+            byte[] bytes = new byte[2];
+            MemoryMarshal.Write(bytes.AsSpan(), in i);
+            return bytes;
         }
 
         private void Emit(OpCode opCode)
@@ -423,7 +425,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
             lines.Add(currentLine);
         }
 
-        private void Emit(OpCode opCode, params byte[] data)
+        private void Emit(OpCode opCode, params ReadOnlySpan<byte> data)
         {
             Emit(opCode);
             foreach (byte b in data)

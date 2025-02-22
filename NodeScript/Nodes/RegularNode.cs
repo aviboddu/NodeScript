@@ -3,18 +3,21 @@ namespace NodeScript;
 using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using static NodeScript.CompilerUtils;
 using static OpCode;
 
 [DebuggerDisplay("nextInstruction = {nextInstruction, nq}, stack = {stack, nq}")]
-internal class RegularNode : Node
+internal sealed class RegularNode : Node
 {
     public Node[]? outputs;
     private readonly InternalErrorHandler runtimeError;
 
     private readonly byte[] code;
+    private ref byte codePtr => ref MemoryMarshal.GetArrayDataReference(code);
     private readonly object[] constants;
     private readonly object[] stack;
+    private ref object stackPtr => ref MemoryMarshal.GetArrayDataReference(stack);
     private readonly object[] variables;
     private readonly BitArray initVar;
     private readonly int[] lines;
@@ -270,11 +273,19 @@ internal class RegularNode : Node
         InitGlobals();
     }
 
-    private byte NextByte() => code[nextInstruction++];
-    private ushort NextShort() => (ushort)((NextByte() << 8) | (NextByte() & 0xff));
+    private byte NextByte() => Unsafe.Add(ref codePtr, nextInstruction++);
+    private ushort NextShort()
+    {
+        ushort val = MemoryMarshal.Read<ushort>(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref codePtr, nextInstruction), 2));
+        nextInstruction += 2;
+        return val;
+    }
 
-    private void PushStack(object val) => stack[stackTop++] = val;
-    private object PopStack() => stack[--stackTop];
+    private void PushStack(object val)
+    {
+        Unsafe.Add(ref stackPtr, stackTop++) = val;
+    }
+    private object PopStack() => Unsafe.Add(ref stackPtr, --stackTop);
 
     private void BinaryArithmetic(OpCode op)
     {
