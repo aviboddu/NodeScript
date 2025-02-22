@@ -10,7 +10,7 @@ internal static class NodeFactory
     public static RegularNode? CreateRegularNode(string source, InternalErrorHandler compileError, InternalErrorHandler runtimeError, Node[]? outputs = null)
     {
         bool hasError = false;
-        compileError += (int _, string _) => hasError = true;
+        compileError += (_, _) => hasError = true;
 
         // Tokenize
         Tokenizer tokenizer = new(source, compileError);

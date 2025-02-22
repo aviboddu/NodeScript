@@ -1,6 +1,5 @@
 namespace NodeScript;
 
-using System.Buffers;
 using System.Collections;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
@@ -15,19 +14,21 @@ internal class RegularNode : Node
 
     private readonly byte[] code;
     private readonly object[] constants;
-    private readonly Stack<object> stack = new();
+    private readonly object[] stack;
     private readonly object[] variables;
     private readonly BitArray initVar;
     private readonly int[] lines;
 
     private int nextInstruction = 0;
     private bool panic = false;
+    private int stackTop = 0;
 
     public RegularNode(Compiler.CompiledData compiledData, InternalErrorHandler runtimeError, Node[]? outputs = null)
     {
         code = compiledData.Code;
         constants = compiledData.Constants;
         lines = compiledData.Lines;
+        stack = new object[compiledData.MaxStackSize];
         variables = new object[compiledData.NumVariables];
         initVar = new(compiledData.NumVariables);
         this.outputs = outputs;
@@ -78,32 +79,32 @@ internal class RegularNode : Node
             OpCode nextOp = (OpCode)NextByte();
             switch (nextOp)
             {
-                case CONSTANT: stack.Push(constants[NextByte()]); break;
-                case TRUE: stack.Push(true); break;
-                case FALSE: stack.Push(false); break;
-                case POP: stack.Pop(); break;
+                case CONSTANT: PushStack(constants[NextByte()]); break;
+                case TRUE: PushStack(true); break;
+                case FALSE: PushStack(false); break;
+                case POP: PopStack(); break;
                 case GET:
                     idx = NextShort();
                     if (initVar[idx])
-                        stack.Push(variables[idx]);
+                        PushStack(variables[idx]);
                     else
                         Err("Tried to get a variable that was not yet initialized");
                     break;
                 case SET:
-                    v1 = stack.Pop();
+                    v1 = PopStack();
                     idx = NextShort();
                     variables[idx] = v1;
                     initVar[idx] = true;
                     return;
                 case EQUAL:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
-                    stack.Push(v1.Equals(v2));
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(v1.Equals(v2));
                     break;
                 case NOT_EQUAL:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
-                    stack.Push(!v1.Equals(v2));
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(!v1.Equals(v2));
                     break;
                 case GREATER:
                 case GREATER_EQUAL:
@@ -121,81 +122,81 @@ internal class RegularNode : Node
                 case SUBTRACTI:
                 case MULTIPLYI:
                 case DIVIDEI:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
+                    v2 = PopStack();
+                    v1 = PopStack();
                     BinaryArithmeticUnchecked(nextOp, Unsafe.Unbox<int>(v1), Unsafe.Unbox<int>(v2));
                     break;
                 case ADD:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
+                    v2 = PopStack();
+                    v1 = PopStack();
                     switch (v1)
                     {
-                        case int n: if (ValidateType<int>(v2)) stack.Push(n + Unsafe.Unbox<int>(v2)); break;
-                        case string s: if (ValidateType<string>(v2)) stack.Push(s + Unsafe.As<string>(v2)); break;
-                        case string[] a: if (ValidateType<string[]>(v2)) stack.Push(a.Concat(Unsafe.As<string[]>(v2))); break;
+                        case int n: if (ValidateType<int>(v2)) PushStack(n + Unsafe.Unbox<int>(v2)); break;
+                        case string s: if (ValidateType<string>(v2)) PushStack(s + Unsafe.As<string>(v2)); break;
+                        case string[] a: if (ValidateType<string[]>(v2)) PushStack(a.Concat(Unsafe.As<string[]>(v2))); break;
                         default: Err("Arguments must be either int, string or string[]"); break;
                     }
                     break;
                 case ADDI:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
-                    stack.Push(Unsafe.Unbox<int>(v1) + Unsafe.Unbox<int>(v2));
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(Unsafe.Unbox<int>(v1) + Unsafe.Unbox<int>(v2));
                     break;
                 case ADDS:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
-                    stack.Push(Unsafe.As<string>(v1) + Unsafe.As<string>(v2));
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(Unsafe.As<string>(v1) + Unsafe.As<string>(v2));
                     break;
                 case ADDA:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
-                    stack.Push(Unsafe.As<string[]>(v1).Concat(Unsafe.As<string[]>(v2)));
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(Unsafe.As<string[]>(v1).Concat(Unsafe.As<string[]>(v2)));
                     break;
                 case AND:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
-                    if (ValidateType<bool>(v1, v2)) stack.Push(Unsafe.Unbox<bool>(v1) && Unsafe.Unbox<bool>(v2));
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    if (ValidateType<bool>(v1, v2)) PushStack(Unsafe.Unbox<bool>(v1) && Unsafe.Unbox<bool>(v2));
                     break;
                 case ANDB:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
-                    stack.Push(Unsafe.Unbox<bool>(v1) && Unsafe.Unbox<bool>(v2));
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(Unsafe.Unbox<bool>(v1) && Unsafe.Unbox<bool>(v2));
                     break;
                 case OR:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
-                    if (ValidateType<bool>(v1, v2)) stack.Push(Unsafe.Unbox<bool>(v1) || Unsafe.Unbox<bool>(v2));
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    if (ValidateType<bool>(v1, v2)) PushStack(Unsafe.Unbox<bool>(v1) || Unsafe.Unbox<bool>(v2));
                     break;
                 case ORB:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
-                    stack.Push(Unsafe.Unbox<bool>(v1) || Unsafe.Unbox<bool>(v2));
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(Unsafe.Unbox<bool>(v1) || Unsafe.Unbox<bool>(v2));
                     break;
                 case NEGATE:
-                    v1 = stack.Pop();
-                    if (ValidateType<int>(v1)) stack.Push(-Unsafe.Unbox<int>(v1));
+                    v1 = PopStack();
+                    if (ValidateType<int>(v1)) PushStack(-Unsafe.Unbox<int>(v1));
                     break;
                 case NEGATEI:
-                    v1 = stack.Pop();
-                    stack.Push(-Unsafe.Unbox<int>(v1));
+                    v1 = PopStack();
+                    PushStack(-Unsafe.Unbox<int>(v1));
                     break;
                 case NOT:
-                    v1 = stack.Pop();
-                    if (ValidateType<bool>(v1)) stack.Push(!Unsafe.Unbox<bool>(v1));
+                    v1 = PopStack();
+                    if (ValidateType<bool>(v1)) PushStack(!Unsafe.Unbox<bool>(v1));
                     break;
                 case NOTB:
-                    v1 = stack.Pop();
-                    stack.Push(!Unsafe.Unbox<bool>(v1));
+                    v1 = PopStack();
+                    PushStack(!Unsafe.Unbox<bool>(v1));
                     break;
                 case PRINT:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
+                    v2 = PopStack();
+                    v1 = PopStack();
                     if (ValidateType<int>(v1) && ValidateType<string>(v2))
                     {
                         if ((!outputs?[Unsafe.Unbox<int>(v1)].PushInput(Unsafe.As<string>(v2))) ?? true)
                         {
-                            stack.Push(v1);
-                            stack.Push(v2);
+                            PushStack(v1);
+                            PushStack(v2);
                             nextInstruction--;
                             State = NodeState.BLOCKED;
                         }
@@ -206,12 +207,12 @@ internal class RegularNode : Node
                     }
                     return;
                 case PRINTIS:
-                    v2 = stack.Pop();
-                    v1 = stack.Pop();
+                    v2 = PopStack();
+                    v1 = PopStack();
                     if ((!outputs?[Unsafe.Unbox<int>(v1)].PushInput(Unsafe.As<string>(v2))) ?? true)
                     {
-                        stack.Push(v1);
-                        stack.Push(v2);
+                        PushStack(v1);
+                        PushStack(v2);
                         nextInstruction--;
                         State = NodeState.BLOCKED;
                     }
@@ -225,7 +226,7 @@ internal class RegularNode : Node
                     nextInstruction += jump_val;
                     return;
                 case JUMP_IF_FALSE:
-                    v1 = stack.Pop();
+                    v1 = PopStack();
                     b = v1 switch
                     {
                         int i => i != 0,
@@ -246,7 +247,7 @@ internal class RegularNode : Node
                     if (!result.Success())
                         Err(result.message!);
                     else
-                        stack.Push(result.GetValue()!);
+                        PushStack(result.GetValue()!);
                     break;
                 case RETURN:
                     State = NodeState.IDLE;
@@ -272,10 +273,13 @@ internal class RegularNode : Node
     private byte NextByte() => code[nextInstruction++];
     private ushort NextShort() => (ushort)((NextByte() << 8) | (NextByte() & 0xff));
 
+    private void PushStack(object val) => stack[stackTop++] = val;
+    private object PopStack() => stack[--stackTop];
+
     private void BinaryArithmetic(OpCode op)
     {
-        object val2 = stack.Pop();
-        object val1 = stack.Pop();
+        object val2 = PopStack();
+        object val1 = PopStack();
 
         if (!ValidateType<int>(val1, val2))
             return;
@@ -288,36 +292,31 @@ internal class RegularNode : Node
         switch (op)
         {
             case GREATER:
-            case GREATERI: stack.Push(num1 > num2); break;
+            case GREATERI: PushStack(num1 > num2); break;
             case GREATER_EQUAL:
-            case GREATER_EQUALI: stack.Push(num1 >= num2); break;
+            case GREATER_EQUALI: PushStack(num1 >= num2); break;
             case LESS:
-            case LESSI: stack.Push(num1 < num2); break;
+            case LESSI: PushStack(num1 < num2); break;
             case LESS_EQUAL:
-            case LESS_EQUALI: stack.Push(num1 <= num2); break;
+            case LESS_EQUALI: PushStack(num1 <= num2); break;
             case SUBTRACT:
-            case SUBTRACTI: stack.Push(num1 - num2); break;
+            case SUBTRACTI: PushStack(num1 - num2); break;
             case MULTIPLY:
-            case MULTIPLYI: stack.Push(num1 * num2); break;
+            case MULTIPLYI: PushStack(num1 * num2); break;
             case DIVIDE:
             case DIVIDEI:
                 if (num2 == 0)
                     Err("Cannot divide by 0");
                 else
-                    stack.Push(num1 / num2);
+                    PushStack(num1 / num2);
                 break;
         }
     }
 
     private Result CallFunc(NativeDelegate func, int numParams)
     {
-        object[] parameters = ArrayPool<object>.Shared.Rent(numParams);
-        int paramsToAdd = numParams;
-        while (paramsToAdd-- > 0)
-            parameters[paramsToAdd] = stack.Pop();
-        Result res = func(parameters.AsSpan()[..numParams]);
-        ArrayPool<object>.Shared.Return(parameters);
-        return res;
+        stackTop -= numParams;
+        return func(stack.AsSpan(stackTop, numParams));
     }
 
     public override Node[] OutputNodes()

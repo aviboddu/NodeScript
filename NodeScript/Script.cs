@@ -152,13 +152,18 @@ public class Script()
     public bool CompileNodes()
     {
         Nodes = new Node[nodesData.Count];
-        for (int i = 0; i < nodesData.Count; i++)
-            if (!CompileNode(i)) return false;
+        bool compileSuccessful = true;
+        Parallel.For(0, nodesData.Count, i =>
+        {
+            compileSuccessful &= CompileNode(i);
+        });
+        if (!compileSuccessful)
+            return false;
 
-        for (int i = 0; i < nodesData.Count; i++)
-            LinkNode(i);
+        Parallel.For(0, nodesData.Count, LinkNode);
 
-        Queue<Node> nodeQueue = new([Nodes.OfType<InputNode>().Single()]);
+        Queue<Node> nodeQueue = new();
+        nodeQueue.Enqueue(Nodes.OfType<InputNode>().Single());
         List<Node> executionList = new(Nodes.Length);
         while (nodeQueue.Count > 0)
         {

@@ -16,8 +16,10 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
     private List<byte> bytes = [];
     private List<int> lines = [];
     private Dictionary<string, ushort> variables = [];
+    private int stackSize = 0;
+    private int maxStackSize = 0;
 
-    public record CompiledData(byte[] Code, object[] Constants, int[] Lines, int NumVariables);
+    public record CompiledData(byte[] Code, object[] Constants, int[] Lines, int NumVariables, int MaxStackSize);
 
     public CompiledData Compile()
     {
@@ -28,20 +30,21 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
         variables.Add("input", INPUT_VARIABLE_IDX);
         variables.Add("mem", MEM_VARIABLE_IDX);
 
+
         while (currentLine < operations.Length)
         {
             if (!CompileLine())
-                return new([], [], [], 0);
+                return new([], [], [], 0, 0);
             currentLine++;
         }
 
         if (!PatchJumps())
-            return new([], [], [], 0);
+            return new([], [], [], 0, 0);
 
         // Insert an additional return operation just in case the user didn't include one at the end.    
         bytes.Add((byte)OpCode.RETURN);
         lines.Add(lines[^1]);
-        return new([.. bytes], [.. constants], CumulativeInstructionsPerLine(lines), variables.Count);
+        return new([.. bytes], [.. constants], CumulativeInstructionsPerLine(lines), variables.Count, maxStackSize);
     }
 
     private bool CompileLine()
@@ -69,6 +72,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
         switch (op.operation)
         {
             case SET:
+                stackSize--;
                 // In the SET case, our compiler will include a Get operation for the variable we wish to set. This should be the first GET which occurs.
                 // We iterate through the operations to find that get OpCode.
                 int idx = -1;
@@ -99,6 +103,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
                 bytes.AddRange(id);
                 break;
             case PRINT:
+                stackSize -= 2;
                 if (op.expressions[0].Type == typeof(int) && op.expressions[1].Type == typeof(string))
                     bytes.Add((byte)OpCode.PRINTIS);
                 else
@@ -108,6 +113,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
             case RETURN: bytes.Add((byte)OpCode.RETURN); lines.Add(currentLine); break;
             // All jump codes temporarily use 0xffff as their offset.
             case IF:
+                stackSize--;
                 bytes.Add((byte)OpCode.JUMP_IF_FALSE); bytes.Add(0xff); bytes.Add(0xff);
                 lines.Add(currentLine); lines.Add(currentLine); lines.Add(currentLine);
                 break;
@@ -224,6 +230,8 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
             expr.Left.Accept(this);
             expr.Right.Accept(this);
 
+            c.stackSize--;
+
             switch (expr.Op.type)
             {
                 case LESS:
@@ -299,8 +307,10 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
 
         public bool VisitIndexExpr(Index expr)
         {
+
             if (!expr.Variable.Accept(this)) return false;
             if (!expr.Arguments.All((a) => a.Accept(this))) return false;
+            c.stackSize -= expr.Arguments.Length - 1;
 
             string f = expr.Arguments.Length == 1 ? "element_at" : "slice";
             StringBuilder funcName = new(f);
@@ -318,6 +328,7 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
 
         public bool VisitCallExpr(Call expr)
         {
+            c.stackSize -= expr.Arguments.Count - 1;
             if (!expr.Arguments.All((e) => e.Accept(this))) return false;
 
 
@@ -340,6 +351,8 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
 
         public bool VisitLiteralExpr(Literal expr)
         {
+            c.stackSize++;
+            c.maxStackSize = Math.Max(c.maxStackSize, c.stackSize);
             object val = expr.Value;
             if (val is bool b)
                 Emit(b ? OpCode.TRUE : OpCode.FALSE);
@@ -372,6 +385,8 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
 
         public bool VisitVariableExpr(Variable expr)
         {
+            c.stackSize++;
+            c.maxStackSize = Math.Max(c.maxStackSize, c.stackSize);
             string name = expr.Name.Lexeme.ToString();
             byte[] varValue = MakeVar(name);
             if (varValue == Array.Empty<byte>())
