@@ -23,31 +23,131 @@ internal static class Optimizer
 
         public Expr VisitBinaryExpr(Binary expr)
         {
-            Expr left = expr.Left.Accept(this);
-            Expr right = expr.Right.Accept(this);
-            if (left is not Literal l || right is not Literal r)
+            expr.Left = expr.Left.Accept(this);
+            expr.Right = expr.Right.Accept(this);
+            if (expr.Left is not Literal && expr.Right is not Literal)
                 return expr;
-            switch (expr.Op.type)
+            if (expr.Left is Literal l && expr.Right is Literal r)
             {
-                case GREATER: return new Literal((int)l.Value > (int)r.Value);
-                case LESS: return new Literal((int)l.Value < (int)r.Value);
-                case MINUS: return new Literal((int)l.Value - (int)r.Value);
-                case STAR: return new Literal((int)l.Value * (int)r.Value);
-                case SLASH: return new Literal((int)l.Value / (int)r.Value);
-                case GREATER_EQUAL: return new Literal((int)l.Value >= (int)r.Value);
-                case LESS_EQUAL: return new Literal((int)l.Value <= (int)r.Value);
-                case AND: return new Literal((bool)l.Value & (bool)r.Value);
-                case OR: return new Literal((bool)l.Value | (bool)r.Value);
-                case PLUS:
-                    if (l.Value is string sl && r.Value is string sr)
-                        return new Literal(sl + sr);
-                    if (l.Value is int il && r.Value is int ir)
-                        return new Literal(ir + il);
-                    errorHandler(lineNo, "Illegal binary expression");
-                    return expr;
-                default:
-                    errorHandler(lineNo, "Unexpected binary operator");
-                    return expr;
+                switch (expr.Op.type)
+                {
+                    case GREATER: return new Literal((int)l.Value > (int)r.Value);
+                    case LESS: return new Literal((int)l.Value < (int)r.Value);
+                    case MINUS: return new Literal((int)l.Value - (int)r.Value);
+                    case STAR: return new Literal((int)l.Value * (int)r.Value);
+                    case SLASH: return new Literal((int)l.Value / (int)r.Value);
+                    case GREATER_EQUAL: return new Literal((int)l.Value >= (int)r.Value);
+                    case LESS_EQUAL: return new Literal((int)l.Value <= (int)r.Value);
+                    case AND: return new Literal((bool)l.Value & (bool)r.Value);
+                    case OR: return new Literal((bool)l.Value | (bool)r.Value);
+                    case PLUS:
+                        if (l.Value is string sl && r.Value is string sr)
+                            return new Literal(sl + sr);
+                        if (l.Value is int il && r.Value is int ir)
+                            return new Literal(ir + il);
+                        errorHandler(lineNo, "Illegal binary expression");
+                        return expr;
+                    default:
+                        errorHandler(lineNo, "Unexpected binary operator");
+                        return expr;
+                }
+            }
+            else if (expr.Left is Literal l1)
+            {
+                switch (expr.Op.type)
+                {
+                    case STAR:
+                        if (l1.Value is int il)
+                        {
+                            switch (il)
+                            {
+                                case -1:
+                                    return new Unary(new Token(MINUS, 0, 0, string.Empty), expr.Right);
+                                case 0:
+                                    return new Literal(0);
+                                case 1:
+                                    return expr.Right;
+                            }
+                        }
+                        return expr;
+                    case AND:
+                        if (l1.Value is bool bl && bl == false)
+                            return new Literal(false);
+                        return expr;
+                    case OR:
+                        if (l1.Value is bool bl2 && bl2 == true)
+                            return new Literal(true);
+                        return expr;
+                    case PLUS:
+                        if (l1.Value is int il2 && il2 == 0)
+                            return expr.Right;
+                        return expr;
+                    case SLASH:
+                        if (l1.Value is int il3 && il3 == 0)
+                            return new Literal(0);
+                        return expr;
+                    case MINUS:
+                        if (l1.Value is int il4 && il4 == 0)
+                            return new Unary(new Token(MINUS, 0, 0, string.Empty), expr.Right);
+                        return expr;
+                    case GREATER:
+                    case GREATER_EQUAL:
+                    case LESS:
+                    case LESS_EQUAL:
+                        return expr;
+                    default:
+                        errorHandler(lineNo, "Unexpected binary operator");
+                        return expr;
+                }
+            }
+            else
+            {
+                Literal r1 = (Literal)expr.Right;
+                switch (expr.Op.type)
+                {
+                    case STAR:
+                        if (r1.Value is int ir)
+                        {
+                            switch (ir)
+                            {
+                                case -1:
+                                    return new Unary(new Token(MINUS, 0, 0, string.Empty), expr.Left);
+                                case 0:
+                                    return new Literal(0);
+                                case 1:
+                                    return expr.Left;
+                            }
+                        }
+                        return expr;
+                    case AND:
+                        if (r1.Value is bool br && br == false)
+                            return new Literal(false);
+                        return expr;
+                    case OR:
+                        if (r1.Value is bool br2 && br2 == true)
+                            return new Literal(true);
+                        return expr;
+                    case PLUS:
+                        if (r1.Value is int ir2 && ir2 == 0)
+                            return expr.Right;
+                        return expr;
+                    case SLASH:
+                        if (r1.Value is int ir3 && ir3 == 1)
+                            return expr.Left;
+                        return expr;
+                    case MINUS:
+                        if (r1.Value is int ir4 && ir4 == 0)
+                            return expr.Left;
+                        return expr;
+                    case GREATER:
+                    case GREATER_EQUAL:
+                    case LESS:
+                    case LESS_EQUAL:
+                        return expr;
+                    default:
+                        errorHandler(lineNo, "Unexpected binary operator");
+                        return expr;
+                }
             }
         }
 
@@ -90,18 +190,18 @@ internal static class Optimizer
 
         public Expr VisitGroupingExpr(Grouping expr)
         {
-            Expr ex = expr.Expression.Accept(this);
-            if (ex is not Literal)
+            expr.Expression = expr.Expression.Accept(this);
+            if (expr.Expression is not Literal)
                 return expr;
-            return ex;
+            return expr.Expression;
         }
 
         public Expr VisitLiteralExpr(Literal expr) => expr;
 
         public Expr VisitUnaryExpr(Unary expr)
         {
-            Expr ex = expr.Right.Accept(this);
-            if (ex is not Literal l)
+            expr.Right = expr.Right.Accept(this);
+            if (expr.Right is not Literal l)
                 return expr;
             switch (expr.Op.type)
             {

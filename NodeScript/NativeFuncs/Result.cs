@@ -11,7 +11,7 @@ internal sealed class Result<T> : Result
 {
     private readonly object? value;
 
-    protected Result(T? value = default, string? message = null) : base(message)
+    private Result(T? value = default, string? message = null) : base(message)
     {
         this.value = value;
     }
