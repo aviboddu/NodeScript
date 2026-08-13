@@ -29,12 +29,16 @@ internal static class Validator
                         errorHandler(i, "ELSE without corresponding IF");
                     else
                     {
-                        if (elseIfDepths is null || ifDepth >= elseIfDepths.Length)
+                        if (elseIfDepths is null)
+                            elseIfDepths = new BitArray(8);
+                        else if (ifDepth >= elseIfDepths.Length)
                         {
-                            BitArray grown = new(ifDepth + 1);
-                            if (elseIfDepths is not null)
-                                for (int b = 0; b < elseIfDepths.Length; b++)
-                                    grown[b] = elseIfDepths[b];
+                            int newLength = elseIfDepths.Length * 2;
+                            while (ifDepth >= newLength)
+                                newLength *= 2;
+                            BitArray grown = new(newLength);
+                            for (int b = 0; b < elseIfDepths.Length; b++)
+                                grown[b] = elseIfDepths[b];
                             elseIfDepths = grown;
                         }
                         if (elseIfDepths[ifDepth])
