@@ -1,0 +1,2 @@
+SET value, (1+2)*3-4/2
+PRINT 0, to_string(value)

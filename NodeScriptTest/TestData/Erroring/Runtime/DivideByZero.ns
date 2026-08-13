@@ -1,0 +1,2 @@
+SET divisor, parse_int(input)
+SET value, 1 / divisor
