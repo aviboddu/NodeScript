@@ -9,7 +9,7 @@ internal static class Validator
     public static void Validate(Operation?[] operations, InternalErrorHandler errorHandler)
     {
         // Validating IF and ENDIF statements as well as validating native function calls
-        int ifEndif = 0;
+        Stack<bool> ifStatements = new();
         for (int i = 0; i < operations.Length; i++)
         {
             Operation? op = operations[i];
@@ -17,17 +17,36 @@ internal static class Validator
             ExpressionValidator v = new(errorHandler, i);
             switch (op.operation)
             {
-                case IF: ifEndif++; break;
+                case IF:
+                    ifStatements.Push(false);
+                    break;
+                case ELSE:
+                    if (ifStatements.Count == 0)
+                        errorHandler(i, "ELSE without corresponding IF");
+                    else if (ifStatements.Peek())
+                        errorHandler(i, "Duplicate ELSE");
+                    else
+                    {
+                        ifStatements.Pop();
+                        ifStatements.Push(true);
+                    }
+                    break;
                 case ENDIF:
-                    ifEndif--;
-                    if (ifEndif < 0) errorHandler.Invoke(i, "IF statements do not match ENDIF statements");
+                    if (ifStatements.Count == 0)
+                        errorHandler.Invoke(i, "IF statements do not match ENDIF statements");
+                    else
+                        ifStatements.Pop();
                     break;
             }
 
             foreach (Expr ex in op.expressions)
                 ex.Accept(v);
         }
-        if (ifEndif != 0) errorHandler(operations.Length - 1, "IF statements do not match ENDIF statements");
+        while (ifStatements.Count > 0)
+        {
+            ifStatements.Pop();
+            errorHandler(operations.Length - 1, "IF statements do not match ENDIF statements");
+        }
 
         // Inferring types
         Stack<(Dictionary<string, Type>, Dictionary<string, Type>)> variableTypes = new();
@@ -59,11 +78,15 @@ internal static class Validator
                     currentVariableTypeMap = variableTypes.Peek().Item1;
                     break;
                 case ELSE:
+                    if (variableTypes.Count == 1 || isSecondStack.Peek())
+                        continue;
                     isSecondStack.Pop();
                     isSecondStack.Push(true);
                     currentVariableTypeMap = variableTypes.Peek().Item2;
                     break;
                 case ENDIF:
+                    if (variableTypes.Count == 1)
+                        continue;
                     isSecondStack.Pop();
                     var pair = variableTypes.Pop();
                     Dictionary<string, Type> mergedDictionaries = MergeDictionaries(pair.Item1, pair.Item2);
@@ -304,7 +327,7 @@ internal static class Validator
 
         public bool VisitUnaryExpr(Unary expr)
         {
-            bool valid = expr.Accept(this);
+            bool valid = expr.Right.Accept(this);
             switch (expr.Op.type)
             {
                 case MINUS:

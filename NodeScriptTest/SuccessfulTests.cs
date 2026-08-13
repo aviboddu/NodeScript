@@ -50,6 +50,22 @@ public class SuccessfulTests()
     [TestMethod] public void SliceTest() => RunTest("Slice");
     [TestMethod] public void VariablesTest() => RunTest("Variables");
 
+    [TestMethod]
+    public void UnaryExpressionsCompileAndRun()
+    {
+        List<string> errors = [];
+        Script script = new((_, _, message) => errors.Add(message), (_, _, _) => { });
+        int inputId = script.AddInputNode("input");
+        int nodeId = script.AddRegularNode("SET x, -length(input)\nPRINT 0, to_string(x)\nIF !(input == mem)\nPRINT 0, \"ok\"\nENDIF");
+        int outputId = script.AddOutputNode();
+        script.ConnectNodes(inputId, nodeId);
+        script.ConnectNodes(nodeId, outputId);
+
+        Assert.IsTrue(script.CompileNodes(), string.Join(Environment.NewLine, errors));
+        script.Run();
+        Assert.AreEqual("-5\nok\n", script.GetOutput());
+    }
+
 
 
 

@@ -151,6 +151,9 @@ public class Script()
     /// <exception cref="InvalidOperationException">Thrown if there is no input node.</exception> 
     public bool CompileNodes()
     {
+        if (!ValidateTopology())
+            return false;
+
         Nodes = new Node[nodesData.Count];
         bool compileSuccessful = true;
         Parallel.For(0, nodesData.Count, i =>
@@ -285,7 +288,86 @@ public class Script()
     private void ValidateIds(params int[] ids)
     {
         foreach (int id in ids)
-            if (id < 0 || id > nodesData.Count) throw new ArgumentException($"id {id} is out of range");
+            if (id < 0 || id >= nodesData.Count) throw new ArgumentException($"id {id} is out of range");
+    }
+
+    private bool ValidateTopology()
+    {
+        bool valid = true;
+        for (int id = 0; id < nodesData.Count; id++)
+        {
+            NodeData nodeData = nodesData[id];
+            int[]? outputs = nodeData.Outputs;
+            if (outputs is null) continue;
+
+            if (nodeData is InputNodeData or CombinerNodeData && outputs.Length > 1)
+            {
+                CompileError?.Invoke(id, -1, "This node can only have one output");
+                valid = false;
+            }
+            if (nodeData is OutputNodeData && outputs.Length > 0)
+            {
+                CompileError?.Invoke(id, -1, "Output Node doesn't have its own output.");
+                valid = false;
+            }
+
+            HashSet<int>? outputIds = nodeData is RegularNodeData ? [] : null;
+            foreach (int outputId in outputs)
+            {
+                if (outputId < 0 || outputId >= nodesData.Count)
+                {
+                    CompileError?.Invoke(id, -1, $"Output id {outputId} is out of range");
+                    valid = false;
+                    continue;
+                }
+                if (nodesData[outputId] is InputNodeData)
+                {
+                    CompileError?.Invoke(id, -1, "Cannot output to an input node");
+                    valid = false;
+                }
+                if (outputIds is not null && !outputIds.Add(outputId))
+                {
+                    CompileError?.Invoke(id, -1, "Cannot make the same connection twice");
+                    valid = false;
+                }
+            }
+        }
+
+        if (HasCycle())
+        {
+            for (int id = 0; id < nodesData.Count; id++)
+                CompileError?.Invoke(id, -1, "Graph contains a cycle");
+            valid = false;
+        }
+        return valid;
+    }
+
+    private bool HasCycle()
+    {
+        int[] indegrees = new int[nodesData.Count];
+        foreach (NodeData nodeData in nodesData)
+        {
+            if (nodeData is OutputNodeData || nodeData.Outputs is null) continue;
+            foreach (int outputId in nodeData.Outputs)
+                if (outputId >= 0 && outputId < nodesData.Count && nodesData[outputId] is not InputNodeData)
+                    indegrees[outputId]++;
+        }
+
+        Queue<int> nodeQueue = new(Enumerable.Range(0, nodesData.Count).Where(id => indegrees[id] == 0));
+        int visited = 0;
+        while (nodeQueue.TryDequeue(out int id))
+        {
+            visited++;
+            int[]? outputs = nodesData[id].Outputs;
+            if (nodesData[id] is OutputNodeData || outputs is null) continue;
+            foreach (int outputId in outputs)
+            {
+                if (outputId < 0 || outputId >= nodesData.Count || nodesData[outputId] is InputNodeData) continue;
+                if (--indegrees[outputId] == 0)
+                    nodeQueue.Enqueue(outputId);
+            }
+        }
+        return visited != nodesData.Count;
     }
 
     [JsonPolymorphic(UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FallBackToNearestAncestor)]
