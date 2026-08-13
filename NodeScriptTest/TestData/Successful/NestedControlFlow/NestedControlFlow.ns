@@ -1,0 +1,9 @@
+IF length(input) < 6
+IF length(input) > 4
+PRINT 0, "nested-first"
+ELSE
+PRINT 0, "wrong"
+ENDIF
+ELSE
+PRINT 0, "nested-second"
+ENDIF

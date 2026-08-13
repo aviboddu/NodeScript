@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using NodeScript;
 
 namespace NodeScriptTest;
@@ -12,7 +11,10 @@ public class SuccessfulTests()
     {
         string filePath = Path.Combine(FOLDER_PATH, testName, testName);
         string expectedOutput = File.ReadAllText(filePath + ".out");
-        Script script = new(CompileError, RuntimeError);
+        List<string> diagnostics = [];
+        Script script = new(
+            (_, line, message) => diagnostics.Add($"compile:{line}:{message}"),
+            (_, line, message) => diagnostics.Add($"runtime:{line}:{message}"));
 
         int input_id = script.AddInputNode(File.ReadAllText(filePath + ".in"));
         int node_id = script.AddRegularNode(File.ReadAllText(filePath + ".ns"));
@@ -20,19 +22,10 @@ public class SuccessfulTests()
         script.ConnectNodes(input_id, node_id);
         script.ConnectNodes(node_id, output_id);
 
-        script.CompileNodes();
+        Assert.IsTrue(script.CompileNodes(), $"{testName}: {string.Join(Environment.NewLine, diagnostics)}");
         script.Run();
+        Assert.AreEqual(0, diagnostics.Count, $"{testName}: {string.Join(Environment.NewLine, diagnostics)}");
         Assert.AreEqual(expectedOutput.ReplaceLineEndings(), script.GetOutput());
-    }
-
-    private static void CompileError(int id, int line, string message)
-    {
-        Debug.WriteLine($"Compilation error at node {id}, line {line}: {message}");
-    }
-
-    private static void RuntimeError(int id, int line, string message)
-    {
-        Debug.WriteLine($"Runtime error at node {id}, line {line}: {message}");
     }
 
     [TestMethod] public void ArithmeticTest() => RunTest("Arithmetic");
@@ -51,13 +44,7 @@ public class SuccessfulTests()
     [TestMethod] public void VariablesTest() => RunTest("Variables");
 
     [TestMethod] public void UnaryExpressionsCompileAndRun() => RunTest("Unary");
-
-
-
-
-
-
-
-
-
+    [TestMethod] public void NestedControlFlowFixture() => RunTest("NestedControlFlow");
+    [TestMethod] public void PrecedenceFixture() => RunTest("Precedence");
+    [TestMethod] public void UnicodeAndNativeBoundaryFixture() => RunTest("UnicodeAndNativeBoundaries");
 }
