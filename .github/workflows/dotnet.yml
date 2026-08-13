@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "master" ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
 
@@ -22,4 +25,23 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --verbosity normal --collect:"XPlat Code Coverage" --results-directory ./coverage
+    - name: Generate coverage summary
+      if: always()
+      uses: danielpalme/ReportGenerator-GitHub-Action@5.4.3
+      with:
+        reports: ./coverage/**/coverage.cobertura.xml
+        targetdir: ./coverage/report
+        reporttypes: MarkdownSummaryGithub
+    - name: Publish coverage summary
+      if: always()
+      run: cat ./coverage/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+    - name: Upload coverage artifact
+      if: always()
+      uses: actions/upload-artifact@v4.3.6
+      with:
+        name: coverage-report
+        path: |
+          ./coverage/**/coverage.cobertura.xml
+          ./coverage/report/**
+        retention-days: 30

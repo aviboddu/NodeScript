@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ "master" ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -19,12 +22,21 @@ jobs:
       run: dotnet restore
     - name: Run Benchmark
       run: dotnet run -c Release --project ./NodeScriptBenchmark
+    - name: Publish benchmark summary
+      if: always()
+      run: |
+        {
+          echo "## Benchmark Results"
+          echo
+          echo "Compare these numbers against the previous run's \`benchmark-results\` artifact or the baseline recorded in the repository wiki. Investigate any mean/allocated-memory regression greater than ~10% before merging."
+          echo
+          cat ./BenchmarkDotNet.Artifacts/results/*.md
+        } >> "$GITHUB_STEP_SUMMARY"
     - name: Upload Benchmark Results
       uses: actions/upload-artifact@v4.3.6
       with:
         name: benchmark-results
         path: ./BenchmarkDotNet.Artifacts/results/*.md
-        retention-days: 0
+        retention-days: 30
         compression-level: 0
         overwrite: true
-          
