@@ -9,7 +9,8 @@ internal static class Validator
     public static void Validate(Operation?[] operations, InternalErrorHandler errorHandler)
     {
         // Validating IF and ENDIF statements as well as validating native function calls
-        Stack<bool> ifStatements = new();
+        int ifDepth = 0;
+        HashSet<int>? elseIfDepths = null;
         for (int i = 0; i < operations.Length; i++)
         {
             Operation? op = operations[i];
@@ -18,33 +19,31 @@ internal static class Validator
             switch (op.operation)
             {
                 case IF:
-                    ifStatements.Push(false);
+                    ifDepth++;
                     break;
                 case ELSE:
-                    if (ifStatements.Count == 0)
+                    if (ifDepth == 0)
                         errorHandler(i, "ELSE without corresponding IF");
-                    else if (ifStatements.Peek())
+                    else if (!(elseIfDepths ??= []).Add(ifDepth))
                         errorHandler(i, "Duplicate ELSE");
-                    else
-                    {
-                        ifStatements.Pop();
-                        ifStatements.Push(true);
-                    }
                     break;
                 case ENDIF:
-                    if (ifStatements.Count == 0)
+                    if (ifDepth == 0)
                         errorHandler.Invoke(i, "IF statements do not match ENDIF statements");
                     else
-                        ifStatements.Pop();
+                    {
+                        elseIfDepths?.Remove(ifDepth);
+                        ifDepth--;
+                    }
                     break;
             }
 
             foreach (Expr ex in op.expressions)
                 ex.Accept(v);
         }
-        while (ifStatements.Count > 0)
+        while (ifDepth > 0)
         {
-            ifStatements.Pop();
+            ifDepth--;
             errorHandler(operations.Length - 1, "IF statements do not match ENDIF statements");
         }
 
