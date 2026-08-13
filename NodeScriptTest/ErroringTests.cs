@@ -1,6 +1,8 @@
 namespace NodeScriptTest;
 
 using NodeScript;
+using System.Text.Json;
+using System.Text.Json.Nodes;
 
 [TestClass]
 public class ErroringTests
@@ -33,6 +35,82 @@ public class ErroringTests
         Assert.ThrowsException<InvalidOperationException>(() => new Script().CompileNodes(), "Script.CompileNodes allows compilation without an input node");
         Assert.ThrowsException<ArgumentException>(() => script.GetCurrentLine(-1), "Script.GetCurrentLine() allows negative id");
         Assert.ThrowsException<ArgumentException>(() => script.GetCurrentLine(4), "Script.GetCurrentLine() allows ids which are too large (not assigned to a node yet)");
+    }
+
+    [TestMethod]
+    public void NodeIdEqualToNodeCountIsRejected()
+    {
+        Script script = new();
+        int inputId = script.AddInputNode("input");
+        int nodeId = script.AddRegularNode(File.ReadAllText(Path.Combine(FOLDER_PATH, "Compilation", "Return.ns")));
+        int outputId = script.AddOutputNode();
+        script.ConnectNodes(inputId, nodeId);
+        script.ConnectNodes(nodeId, outputId);
+
+        Assert.ThrowsException<ArgumentException>(() => script.ConnectNodes(3, outputId));
+        Assert.ThrowsException<ArgumentException>(() => script.UpdateData(3, "code"));
+        Assert.IsTrue(script.CompileNodes());
+        Assert.ThrowsException<ArgumentException>(() => script.GetCurrentLine(3));
+    }
+
+    [TestMethod]
+    public void InvalidControlFlowReportsErrorsWithoutThrowing()
+    {
+        foreach (string fileName in Directory.EnumerateFiles(Path.Combine(FOLDER_PATH, "Validation")))
+        {
+            string code = File.ReadAllText(fileName);
+            List<string> errors = [];
+            Script script = new((_, _, message) => errors.Add(message), (_, _, _) => { });
+            int inputId = script.AddInputNode("input");
+            int nodeId = script.AddRegularNode(code);
+            int outputId = script.AddOutputNode();
+            script.ConnectNodes(inputId, nodeId);
+            script.ConnectNodes(nodeId, outputId);
+
+            Assert.IsFalse(script.CompileNodes(), fileName);
+            Assert.IsTrue(errors.Count > 0, fileName);
+        }
+    }
+
+    [TestMethod]
+    public void InvalidDeserializedTopologyReportsErrorsWithoutThrowing()
+    {
+        Script original = new();
+        int inputId = original.AddInputNode("input");
+        int nodeId = original.AddRegularNode(File.ReadAllText(Path.Combine(FOLDER_PATH, "Compilation", "Return.ns")));
+        int outputId = original.AddOutputNode();
+        original.ConnectNodes(inputId, nodeId);
+        original.ConnectNodes(nodeId, outputId);
+
+        JsonObject serialized = JsonNode.Parse(JsonSerializer.Serialize(original))!.AsObject();
+        JsonArray nodes = serialized["nodesData"]!.AsArray();
+        nodes[0]!["Outputs"] = new JsonArray(1, 2);
+        nodes[1]!["Outputs"] = new JsonArray(2, 2, 99);
+        nodes[2]!["Outputs"] = new JsonArray(0);
+        List<string> errors = [];
+        Script script = JsonSerializer.Deserialize<Script>(serialized.ToJsonString())!;
+        script.CompileError += (_, _, message) => errors.Add(message);
+
+        Assert.IsFalse(script.CompileNodes());
+        Assert.IsTrue(errors.Count >= 5);
+    }
+
+    [TestMethod]
+    public void CyclicTopologyReportsErrorsWithoutRunning()
+    {
+        List<string> errors = [];
+        Script script = new((_, _, message) => errors.Add(message), (_, _, _) => { });
+        int inputId = script.AddInputNode("input");
+        string code = File.ReadAllText(Path.Combine(FOLDER_PATH, "Compilation", "Return.ns"));
+        int firstNodeId = script.AddRegularNode(code);
+        int secondNodeId = script.AddRegularNode(code);
+        script.AddOutputNode();
+        script.ConnectNodes(inputId, firstNodeId);
+        script.ConnectNodes(firstNodeId, secondNodeId);
+        script.ConnectNodes(secondNodeId, firstNodeId);
+
+        Assert.IsFalse(script.CompileNodes());
+        Assert.IsTrue(errors.Count > 0);
     }
 
     [TestMethod]

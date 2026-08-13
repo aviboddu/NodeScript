@@ -1,0 +1,5 @@
+SET x, -length(input)
+PRINT 0, to_string(x)
+IF !(input == mem)
+PRINT 0, "ok"
+ENDIF

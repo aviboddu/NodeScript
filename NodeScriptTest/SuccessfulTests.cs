@@ -50,6 +50,8 @@ public class SuccessfulTests()
     [TestMethod] public void SliceTest() => RunTest("Slice");
     [TestMethod] public void VariablesTest() => RunTest("Variables");
 
+    [TestMethod] public void UnaryExpressionsCompileAndRun() => RunTest("Unary");
+
 
 
 
