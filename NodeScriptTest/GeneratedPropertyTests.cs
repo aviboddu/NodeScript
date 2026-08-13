@@ -24,20 +24,17 @@ public class GeneratedPropertyTests
                 compileError: (_, line, message) => compileDiagnostics.Add($"{line}:{message}"),
                 runtimeError: (_, line, message) => runtimeDiagnostics.Add($"{line}:{message}"));
 
-            bool compiled = false;
             try
             {
-                compiled = script.CompileNodes();
-                if (compiled)
+                if (script.CompileNodes())
                     script.Run();
+                else
+                    Assert.IsTrue(compileDiagnostics.Count > 0, $"Seed {seed} failed without diagnostics.{Environment.NewLine}{source}");
             }
             catch (Exception ex)
             {
                 Assert.Fail($"Seed {seed} escaped an exception:{Environment.NewLine}{ex}{Environment.NewLine}{source}");
             }
-
-            if (!compiled)
-                Assert.IsTrue(compileDiagnostics.Count > 0, $"Seed {seed} failed without diagnostics.{Environment.NewLine}{source}");
         }
     }
 
