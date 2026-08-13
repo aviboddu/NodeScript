@@ -15,9 +15,8 @@ internal sealed class Result<T> : Result
     {
         this.value = value;
     }
-
     public static Result<T> Ok(T val) => new(val);
     public static Result<T> Fail(string error) => new(message: error);
-    public override bool Success() => value is not null;
+    public override bool Success() => message is null;
     public override object? GetValue() => value;
 }

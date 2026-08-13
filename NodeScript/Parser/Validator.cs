@@ -373,7 +373,16 @@ internal static class Validator
     {
         private readonly InternalErrorHandler errorHandler = errorHandler;
 
-        public bool VisitBinaryExpr(Binary expr) => expr.Left.Accept(this) & expr.Right.Accept(this);
+        public bool VisitBinaryExpr(Binary expr)
+        {
+            bool valid = expr.Left.Accept(this) & expr.Right.Accept(this);
+            if (expr.Op.type == SLASH && expr.Right is Literal { Value: 0 })
+            {
+                errorHandler(lineNo, "Cannot divide by 0");
+                return false;
+            }
+            return valid;
+        }
 
         public bool VisitIndexExpr(Index expr) => expr.Arguments.All((a) => a.Accept(this));
 

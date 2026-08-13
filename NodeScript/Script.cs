@@ -151,16 +151,19 @@ public class Script()
     /// <exception cref="InvalidOperationException">Thrown if there is no input node.</exception> 
     public bool CompileNodes()
     {
+        Nodes = [];
+        NodesToExecute = [];
         if (!ValidateTopology())
             return false;
 
         Nodes = new Node[nodesData.Count];
-        bool compileSuccessful = true;
+        int compileFailed = 0;
         Parallel.For(0, nodesData.Count, i =>
         {
-            compileSuccessful &= CompileNode(i);
+            if (!CompileNode(i))
+                Interlocked.Exchange(ref compileFailed, 1);
         });
-        if (!compileSuccessful)
+        if (compileFailed != 0)
             return false;
 
         Parallel.For(0, nodesData.Count, LinkNode);
