@@ -11,8 +11,6 @@ internal static class Validator
     {
         // Validating IF and ENDIF statements as well as validating native function calls
         int ifDepth = 0;
-        // Tracks whether the IF at each depth already has an ELSE. Depths are typically
-        // fairly shallow, so an expandable bitset is far lighter than a HashSet<int>.
         BitArray? elseIfDepths = null;
         for (int i = 0; i < operations.Length; i++)
         {
