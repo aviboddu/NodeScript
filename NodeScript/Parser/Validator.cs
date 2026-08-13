@@ -1,5 +1,6 @@
 namespace NodeScript;
 
+using System.Collections;
 using System.Text;
 using static CompilerUtils;
 using static TokenType;
@@ -10,7 +11,9 @@ internal static class Validator
     {
         // Validating IF and ENDIF statements as well as validating native function calls
         int ifDepth = 0;
-        HashSet<int>? elseIfDepths = null;
+        // Tracks whether the IF at each depth already has an ELSE. Depths are typically
+        // fairly shallow, so an expandable bitset is far lighter than a HashSet<int>.
+        BitArray? elseIfDepths = null;
         for (int i = 0; i < operations.Length; i++)
         {
             Operation? op = operations[i];
@@ -24,15 +27,29 @@ internal static class Validator
                 case ELSE:
                     if (ifDepth == 0)
                         errorHandler(i, "ELSE without corresponding IF");
-                    else if (!(elseIfDepths ??= []).Add(ifDepth))
-                        errorHandler(i, "Duplicate ELSE");
+                    else
+                    {
+                        if (elseIfDepths is null || ifDepth >= elseIfDepths.Length)
+                        {
+                            BitArray grown = new(ifDepth + 1);
+                            if (elseIfDepths is not null)
+                                for (int b = 0; b < elseIfDepths.Length; b++)
+                                    grown[b] = elseIfDepths[b];
+                            elseIfDepths = grown;
+                        }
+                        if (elseIfDepths[ifDepth])
+                            errorHandler(i, "Duplicate ELSE");
+                        else
+                            elseIfDepths[ifDepth] = true;
+                    }
                     break;
                 case ENDIF:
                     if (ifDepth == 0)
                         errorHandler.Invoke(i, "IF statements do not match ENDIF statements");
                     else
                     {
-                        elseIfDepths?.Remove(ifDepth);
+                        if (elseIfDepths is not null && ifDepth < elseIfDepths.Length)
+                            elseIfDepths[ifDepth] = false;
                         ifDepth--;
                     }
                     break;
