@@ -25,11 +25,6 @@ internal static class Optimizer
         {
             expr.Left = expr.Left.Accept(this);
             expr.Right = expr.Right.Accept(this);
-            if (expr.Op.type == SLASH && expr.Right is Literal { Value: 0 })
-            {
-                errorHandler(lineNo, "Cannot divide by 0");
-                return expr;
-            }
             if (expr.Left is not Literal && expr.Right is not Literal)
                 return expr;
             if (expr.Left is Literal l && expr.Right is Literal r)
@@ -40,7 +35,10 @@ internal static class Optimizer
                     case LESS: return new Literal((int)l.Value < (int)r.Value);
                     case MINUS: return new Literal((int)l.Value - (int)r.Value);
                     case STAR: return new Literal((int)l.Value * (int)r.Value);
-                    case SLASH: return new Literal((int)l.Value / (int)r.Value);
+                    case SLASH:
+                        if ((int)r.Value == 0)
+                            return expr; // Division by zero is reported by the validator
+                        return new Literal((int)l.Value / (int)r.Value);
                     case GREATER_EQUAL: return new Literal((int)l.Value >= (int)r.Value);
                     case LESS_EQUAL: return new Literal((int)l.Value <= (int)r.Value);
                     case AND: return new Literal((bool)l.Value & (bool)r.Value);
