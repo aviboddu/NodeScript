@@ -31,11 +31,10 @@ public class GeneratedPropertyTests
                 if (compiled)
                     script.Run();
             }
-            catch (Exception ex)
-            {
-                Assert.Fail($"Seed {seed} escaped an exception: {ex.Message}{Environment.NewLine}{source}");
-                return;
-            }
+catch (Exception ex)
+{
+    Assert.Fail($"Seed {seed} escaped an exception:{Environment.NewLine}{ex}{Environment.NewLine}{source}");
+}
 
             if (!compiled)
                 Assert.IsTrue(compileDiagnostics.Count > 0, $"Seed {seed} failed without diagnostics.{Environment.NewLine}{source}");
