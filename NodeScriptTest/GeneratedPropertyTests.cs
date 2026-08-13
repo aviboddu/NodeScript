@@ -54,8 +54,7 @@ catch (Exception ex)
             script.CompileError += (_, line, message) => firstDiagnostics.Add($"{line}:{message}");
             bool firstResult = script.CompileNodes();
 
-            script.CompileError = null;
-            script.CompileError += (_, line, message) => secondDiagnostics.Add($"{line}:{message}");
+script.CompileError = (_, line, message) => secondDiagnostics.Add($"{line}:{message}");
             bool secondResult = script.CompileNodes();
 
             Assert.AreEqual(firstResult, secondResult, $"Seed {seed} changed compile result.{Environment.NewLine}{source}");
