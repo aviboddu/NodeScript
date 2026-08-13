@@ -96,6 +96,19 @@ public class CompilationDiagnosticTests
     }
 
     [TestMethod]
+    public void NonLiteralDividendWithZeroDivisorIsACompilationError()
+    {
+        List<(int Line, string Message)> diagnostics = [];
+        Script script = ScriptTestHelpers.CreateLinearScript(
+            "SET value, parse_int(input) / 0",
+            compileError: (_, line, message) => diagnostics.Add((line, message)));
+
+        Assert.IsFalse(script.CompileNodes());
+        Assert.IsTrue(diagnostics.Any(d =>
+            d.Line == 0 && d.Message.Contains("divide by 0", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [TestMethod]
     public void IntegerLiteralBoundaryCompilesAndOverflowReportsADiagnostic()
     {
         Script validScript = ScriptTestHelpers.CreateLinearScript("PRINT 0, to_string(2147483647)");
