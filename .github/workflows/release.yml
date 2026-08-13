@@ -22,5 +22,11 @@ jobs:
             dotnet-version: 9.0.x
         - name: Package
           run: dotnet pack ./NodeScript -c Release -p:Version=${{ inputs.version }} -p:PackageReleaseNotes="${{inputs.release-notes}}"
+          # Get a short-lived NuGet API key
+        - name: NuGet login (OIDC → temp API key)
+          uses: NuGet/login@v1
+          id: login
+          with:
+            user: ${{ secrets.NUGET_USER }}
         - name: Publish
-          run: dotnet nuget push ./NodeScript/bin/Release/NodeScript.${{inputs.version}}.nupkg -k ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
+          run: dotnet nuget push ./NodeScript/bin/Release/NodeScript.${{inputs.version}}.nupkg --api-key ${{steps.login.outputs.NUGET_API_KEY}} --source https://api.nuget.org/v3/index.json
