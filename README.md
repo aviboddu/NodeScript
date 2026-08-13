@@ -37,3 +37,5 @@ Every line contains a single statement. All statements will start with a relevan
 - ELSE: Executes the following code if the previous if statement was false. Syntax `ELSE`
 - ENDIF: Marks the end of the IF clause. Either ends the IF code section or the ELSE code section. Only one is needed per IF/ELSE statement. Syntax `ENDIF`
 - NOP: Does nothing. Helpful for synchronizing the timing of multiple nodes. Syntax `NOP`
+
+Development and CI details are documented in the [wiki](https://github.com/aviboddu/NodeScript/wiki).

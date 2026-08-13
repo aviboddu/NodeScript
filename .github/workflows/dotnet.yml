@@ -6,15 +6,23 @@ on:
   pull_request:
     branches: [ "master" ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
 
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read
+      checks: write
+      actions: read
+
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 9.0.x
     - name: Restore dependencies
@@ -22,4 +30,32 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: Test
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test --no-build --verbosity normal --logger "trx;LogFileName=test-results.trx" --results-directory ./coverage --collect:"XPlat Code Coverage"
+    - name: Publish test results check
+      if: always() && hashFiles('./coverage/**/test-results.trx') != ''
+      continue-on-error: true
+      uses: dorny/test-reporter@v3
+      with:
+        name: Test Results
+        path: ./coverage/**/test-results.trx
+        reporter: dotnet-trx
+        fail-on-empty: 'false'
+    - name: Generate coverage summary
+      if: always() && hashFiles('./coverage/**/coverage.cobertura.xml') != ''
+      uses: danielpalme/ReportGenerator-GitHub-Action@5.5.11
+      with:
+        reports: ./coverage/**/coverage.cobertura.xml
+        targetdir: ./coverage/report
+        reporttypes: MarkdownSummaryGithub
+    - name: Publish coverage summary
+      if: always() && hashFiles('./coverage/report/SummaryGithub.md') != ''
+      run: cat ./coverage/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+    - name: Upload coverage artifact
+      if: always()
+      uses: actions/upload-artifact@v7.0.1
+      with:
+        name: coverage-report
+        path: |
+          ./coverage/**/coverage.cobertura.xml
+          ./coverage/report/**
+        retention-days: 30

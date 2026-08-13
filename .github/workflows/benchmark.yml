@@ -6,25 +6,38 @@ on:
   pull_request:
     branches: [ "master" ]
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v7
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 9.0.x
     - name: Restore dependencies
       run: dotnet restore
     - name: Run Benchmark
       run: dotnet run -c Release --project ./NodeScriptBenchmark
+    - name: Publish benchmark summary
+      if: always() && hashFiles('./BenchmarkDotNet.Artifacts/results/*.md') != ''
+      run: |
+        {
+          echo "## Benchmark Results"
+          echo
+          echo "Compare these numbers against the previous run's \`benchmark-results\` artifact or the baseline recorded in the repository wiki. Investigate any mean/allocated-memory regression greater than ~10% before merging."
+          echo
+          cat ./BenchmarkDotNet.Artifacts/results/*.md
+        } >> "$GITHUB_STEP_SUMMARY"
     - name: Upload Benchmark Results
-      uses: actions/upload-artifact@v4.3.6
+      if: always() && hashFiles('./BenchmarkDotNet.Artifacts/results/*.md') != ''
+      uses: actions/upload-artifact@v7.0.1
       with:
         name: benchmark-results
         path: ./BenchmarkDotNet.Artifacts/results/*.md
-        retention-days: 0
+        retention-days: 30
         compression-level: 0
         overwrite: true
-          

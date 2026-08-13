@@ -1,0 +1,42 @@
+name: Dependency Audit
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v7
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 9.0.x
+    - name: Restore dependencies
+      run: dotnet restore
+    - name: Check for outdated packages
+      if: always()
+      run: dotnet list package --outdated --include-transitive
+    - name: Check for vulnerable packages
+      run: |
+        set -o pipefail
+        dotnet list package --vulnerable --include-transitive | tee vulnerable.log
+        if grep -qi "has the following vulnerable packages" vulnerable.log; then
+          echo "::error::Vulnerable NuGet packages detected. See the step output above for details."
+          exit 1
+        fi
+    - name: Publish audit summary
+      if: always() && hashFiles('vulnerable.log') != ''
+      run: |
+        {
+          echo "## Dependency Audit"
+          echo
+          echo '```'
+          cat vulnerable.log
+          echo '```'
+        } >> "$GITHUB_STEP_SUMMARY"
