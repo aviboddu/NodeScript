@@ -42,7 +42,7 @@ public class ErroringTests
     {
         Script script = new();
         int inputId = script.AddInputNode("input");
-        int nodeId = script.AddRegularNode("RETURN");
+        int nodeId = script.AddRegularNode(File.ReadAllText(Path.Combine(FOLDER_PATH, "Compilation", "Return.ns")));
         int outputId = script.AddOutputNode();
         script.ConnectNodes(inputId, nodeId);
         script.ConnectNodes(nodeId, outputId);
@@ -56,8 +56,9 @@ public class ErroringTests
     [TestMethod]
     public void InvalidControlFlowReportsErrorsWithoutThrowing()
     {
-        foreach (string code in new[] { "ENDIF", "ELSE", "IF true\nELSE\nELSE\nENDIF" })
+        foreach (string fileName in Directory.EnumerateFiles(Path.Combine(FOLDER_PATH, "Validation")))
         {
+            string code = File.ReadAllText(fileName);
             List<string> errors = [];
             Script script = new((_, _, message) => errors.Add(message), (_, _, _) => { });
             int inputId = script.AddInputNode("input");
@@ -66,8 +67,8 @@ public class ErroringTests
             script.ConnectNodes(inputId, nodeId);
             script.ConnectNodes(nodeId, outputId);
 
-            Assert.IsFalse(script.CompileNodes(), code);
-            Assert.IsTrue(errors.Count > 0, code);
+            Assert.IsFalse(script.CompileNodes(), fileName);
+            Assert.IsTrue(errors.Count > 0, fileName);
         }
     }
 
@@ -76,7 +77,7 @@ public class ErroringTests
     {
         Script original = new();
         int inputId = original.AddInputNode("input");
-        int nodeId = original.AddRegularNode("RETURN");
+        int nodeId = original.AddRegularNode(File.ReadAllText(Path.Combine(FOLDER_PATH, "Compilation", "Return.ns")));
         int outputId = original.AddOutputNode();
         original.ConnectNodes(inputId, nodeId);
         original.ConnectNodes(nodeId, outputId);
@@ -100,8 +101,9 @@ public class ErroringTests
         List<string> errors = [];
         Script script = new((_, _, message) => errors.Add(message), (_, _, _) => { });
         int inputId = script.AddInputNode("input");
-        int firstNodeId = script.AddRegularNode("RETURN");
-        int secondNodeId = script.AddRegularNode("RETURN");
+        string code = File.ReadAllText(Path.Combine(FOLDER_PATH, "Compilation", "Return.ns"));
+        int firstNodeId = script.AddRegularNode(code);
+        int secondNodeId = script.AddRegularNode(code);
         script.AddOutputNode();
         script.ConnectNodes(inputId, firstNodeId);
         script.ConnectNodes(firstNodeId, secondNodeId);
