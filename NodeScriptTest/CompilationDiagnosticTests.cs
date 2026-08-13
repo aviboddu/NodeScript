@@ -1,4 +1,5 @@
 using NodeScript;
+using System.Collections.Concurrent;
 
 namespace NodeScriptTest;
 
@@ -65,6 +66,23 @@ public class CompilationDiagnosticTests
     }
 
     [TestMethod]
+    public void MultipleInvalidNodesFailCompilationWithIndependentDiagnostics()
+    {
+        ConcurrentBag<int> diagnosticNodes = [];
+        Script script = new();
+        int inputId = script.AddInputNode("input");
+        int firstNodeId = script.AddRegularNode("ELSE");
+        script.ConnectNodes(inputId, firstNodeId);
+        for (int i = 0; i < 7; i++)
+            script.AddRegularNode("ENDIF");
+        script.AddOutputNode();
+        script.CompileError += (node, _, _) => diagnosticNodes.Add(node);
+
+        Assert.IsFalse(script.CompileNodes());
+        CollectionAssert.AreEquivalent(Enumerable.Range(1, 8).ToArray(), diagnosticNodes.Distinct().ToArray());
+    }
+
+    [TestMethod]
     public void ConstantDivisionByZeroIsAControlledCompilationError()
     {
         List<(int Line, string Message)> diagnostics = [];
@@ -75,6 +93,24 @@ public class CompilationDiagnosticTests
         Assert.IsFalse(script.CompileNodes());
         Assert.IsTrue(diagnostics.Any(d =>
             d.Line == 0 && d.Message.Contains("divide by 0", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [TestMethod]
+    public void IntegerLiteralBoundaryCompilesAndOverflowReportsADiagnostic()
+    {
+        Script validScript = ScriptTestHelpers.CreateLinearScript("PRINT 0, to_string(2147483647)");
+        Assert.IsTrue(validScript.CompileNodes());
+        validScript.Run();
+        Assert.AreEqual($"{int.MaxValue}{Environment.NewLine}", validScript.GetOutput());
+
+        List<(int Line, string Message)> diagnostics = [];
+        Script invalidScript = ScriptTestHelpers.CreateLinearScript(
+            "SET value, 2147483648",
+            compileError: (_, line, message) => diagnostics.Add((line, message)));
+
+        Assert.IsFalse(invalidScript.CompileNodes());
+        Assert.IsTrue(diagnostics.Any(d =>
+            d.Line == 0 && d.Message.Contains("integer literal", StringComparison.OrdinalIgnoreCase)));
     }
 
     [TestMethod]

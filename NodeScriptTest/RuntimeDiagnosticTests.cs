@@ -8,8 +8,8 @@ public class RuntimeDiagnosticTests
     [DataTestMethod]
     [DataRow("SET zero, parse_int(input)\nSET value, 1 / zero", "0", "divide by 0")]
     [DataRow("SET value, element_at(input, 9)", "abc", "index out of bounds")]
-    [DataRow("SET value, slice(input, 0, 9)", "abc", "length")]
-    [DataRow("SET value, parse_int(input)", "abc", "parse int")]
+    [DataRow("SET value, slice(input, 0, 9)", "abc", "is only length")]
+    [DataRow("SET value, parse_int(input)", "abc", "Failed to parse int")]
     [DataRow("PRINT 1, input", "abc", "Output index 1")]
     [DataRow("PRINT -1, input", "abc", "Output index -1")]
     public void RuntimeFailuresUseTheCallback(string code, string input, string expectedMessage)

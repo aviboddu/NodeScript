@@ -17,6 +17,7 @@ public class NativeFunctionTests
         AssertResult(NativeFuncs.to_string([42]), "42");
         AssertResult(NativeFuncs.parse_int(["2147483647"]), int.MaxValue);
         AssertResult(NativeFuncs.can_parse(["-2147483648"]), true);
+        AssertResult(NativeFuncs.can_parse(["not an integer"]), false);
         AssertResult(NativeFuncs.remove_at([new[] { "a", "b" }, 0]), new[] { "b" });
         AssertResult(NativeFuncs.trim([" \t"]), string.Empty);
     }

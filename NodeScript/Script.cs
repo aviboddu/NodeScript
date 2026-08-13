@@ -157,12 +157,13 @@ public class Script()
             return false;
 
         Nodes = new Node[nodesData.Count];
-        bool compileSuccessful = true;
+        int compileFailed = 0;
         Parallel.For(0, nodesData.Count, i =>
         {
-            compileSuccessful &= CompileNode(i);
+            if (!CompileNode(i))
+                Interlocked.Exchange(ref compileFailed, 1);
         });
-        if (!compileSuccessful)
+        if (compileFailed != 0)
             return false;
 
         Parallel.For(0, nodesData.Count, LinkNode);
