@@ -151,6 +151,8 @@ public class Script()
     /// <exception cref="InvalidOperationException">Thrown if there is no input node.</exception> 
     public bool CompileNodes()
     {
+        Nodes = [];
+        NodesToExecute = [];
         if (!ValidateTopology())
             return false;
 

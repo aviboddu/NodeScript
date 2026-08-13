@@ -85,14 +85,19 @@ public class ErroringTests
         JsonObject serialized = JsonNode.Parse(JsonSerializer.Serialize(original))!.AsObject();
         JsonArray nodes = serialized["nodesData"]!.AsArray();
         nodes[0]!["Outputs"] = new JsonArray(1, 2);
-        nodes[1]!["Outputs"] = new JsonArray(2, 2, 99);
+        nodes[1]!["Outputs"] = new JsonArray(2, 2, -1, 99);
         nodes[2]!["Outputs"] = new JsonArray(0);
         List<string> errors = [];
         Script script = JsonSerializer.Deserialize<Script>(serialized.ToJsonString())!;
         script.CompileError += (_, _, message) => errors.Add(message);
 
         Assert.IsFalse(script.CompileNodes());
-        Assert.IsTrue(errors.Count >= 5);
+        Assert.IsTrue(errors.Count >= 6);
+        Assert.IsTrue(errors.Any(message => message.Contains("only have one output", StringComparison.Ordinal)));
+        Assert.IsTrue(errors.Count(message => message.Contains("out of range", StringComparison.Ordinal)) >= 2);
+        Assert.IsTrue(errors.Any(message => message.Contains("same connection twice", StringComparison.Ordinal)));
+        Assert.IsTrue(errors.Any(message => message.Contains("doesn't have its own output", StringComparison.Ordinal)));
+        Assert.IsTrue(errors.Any(message => message.Contains("input node", StringComparison.Ordinal)));
     }
 
     [TestMethod]

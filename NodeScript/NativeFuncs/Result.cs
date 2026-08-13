@@ -10,14 +10,15 @@ internal abstract class Result(string? message = null)
 internal sealed class Result<T> : Result
 {
     private readonly object? value;
+    private readonly bool success;
 
-    private Result(T? value = default, string? message = null) : base(message)
+    private Result(T? value, string? message, bool success) : base(message)
     {
         this.value = value;
+        this.success = success;
     }
-
-    public static Result<T> Ok(T val) => new(val);
-    public static Result<T> Fail(string error) => new(message: error);
-    public override bool Success() => value is not null;
+    public static Result<T> Ok(T val) => new(val, null, true);
+    public static Result<T> Fail(string error) => new(default, error, false);
+    public override bool Success() => success;
     public override object? GetValue() => value;
 }

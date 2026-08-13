@@ -25,4 +25,24 @@ public class Serialization
         Assert.IsTrue(script.Equals(deserializedScript));
     }
 
+    [TestMethod]
+    public void RoundTripScriptCompilesExecutesAndResets()
+    {
+        Script original = ScriptTestHelpers.CreateLinearScript("PRINT 0, input", "round trip");
+        string json = JsonSerializer.Serialize(original);
+        Script script = JsonSerializer.Deserialize<Script>(json)!;
+        List<string> diagnostics = [];
+        script.CompileError += (_, _, message) => diagnostics.Add(message);
+        script.RuntimeError += (_, _, message) => diagnostics.Add(message);
+
+        Assert.IsTrue(script.CompileNodes());
+        script.Run();
+        Assert.AreEqual($"round trip{Environment.NewLine}", script.GetOutput());
+
+        script.Reset();
+        script.Run();
+        Assert.AreEqual($"round trip{Environment.NewLine}", script.GetOutput());
+        Assert.AreEqual(0, diagnostics.Count);
+    }
+
 }

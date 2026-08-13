@@ -196,7 +196,12 @@ internal sealed class RegularNode : Node
                     v1 = PopStack();
                     if (ValidateType<int>(v1) && ValidateType<string>(v2))
                     {
-                        if ((!outputs?[Unsafe.Unbox<int>(v1)].PushInput(Unsafe.As<string>(v2))) ?? true)
+                        int outputIndex = Unsafe.Unbox<int>(v1);
+                        if (outputs is null || outputIndex < 0 || outputIndex >= outputs.Length)
+                        {
+                            Err($"Output index {outputIndex} is out of range");
+                        }
+                        else if (!outputs[outputIndex].PushInput(Unsafe.As<string>(v2)))
                         {
                             PushStack(v1);
                             PushStack(v2);
@@ -212,7 +217,12 @@ internal sealed class RegularNode : Node
                 case PRINTIS:
                     v2 = PopStack();
                     v1 = PopStack();
-                    if ((!outputs?[Unsafe.Unbox<int>(v1)].PushInput(Unsafe.As<string>(v2))) ?? true)
+                    int knownOutputIndex = Unsafe.Unbox<int>(v1);
+                    if (outputs is null || knownOutputIndex < 0 || knownOutputIndex >= outputs.Length)
+                    {
+                        Err($"Output index {knownOutputIndex} is out of range");
+                    }
+                    else if (!outputs[knownOutputIndex].PushInput(Unsafe.As<string>(v2)))
                     {
                         PushStack(v1);
                         PushStack(v2);

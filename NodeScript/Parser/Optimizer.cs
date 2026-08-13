@@ -35,7 +35,13 @@ internal static class Optimizer
                     case LESS: return new Literal((int)l.Value < (int)r.Value);
                     case MINUS: return new Literal((int)l.Value - (int)r.Value);
                     case STAR: return new Literal((int)l.Value * (int)r.Value);
-                    case SLASH: return new Literal((int)l.Value / (int)r.Value);
+                    case SLASH:
+                        if ((int)r.Value == 0)
+                        {
+                            errorHandler(lineNo, "Cannot divide by 0");
+                            return expr;
+                        }
+                        return new Literal((int)l.Value / (int)r.Value);
                     case GREATER_EQUAL: return new Literal((int)l.Value >= (int)r.Value);
                     case LESS_EQUAL: return new Literal((int)l.Value <= (int)r.Value);
                     case AND: return new Literal((bool)l.Value & (bool)r.Value);
