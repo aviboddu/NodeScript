@@ -98,7 +98,7 @@ public class GeneratedPropertyTests
     {
         Random random = new(seed * 7 + 3);
         string text = $"v{random.Next(1000)}";
-        return seed % 5 switch
+        return (seed % 5) switch
         {
             0 => ("PRINT 0, input", text),
             1 => ("PRINT 0, trim(input)", $"  {text}  "),
