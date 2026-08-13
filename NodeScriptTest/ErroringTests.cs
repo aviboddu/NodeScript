@@ -56,9 +56,15 @@ public class ErroringTests
     [TestMethod]
     public void InvalidControlFlowReportsErrorsWithoutThrowing()
     {
-        foreach (string fileName in Directory.EnumerateFiles(Path.Combine(FOLDER_PATH, "Validation")))
+        string[] files = Directory
+            .EnumerateFiles(Path.Combine(FOLDER_PATH, "Validation"), "*.ns")
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        Assert.IsTrue(files.Length > 0, "Expected validation fixtures.");
+
+        foreach (string filePath in files)
         {
-            string code = File.ReadAllText(fileName);
+            string code = File.ReadAllText(filePath);
             List<string> errors = [];
             Script script = new((_, _, message) => errors.Add(message), (_, _, _) => { });
             int inputId = script.AddInputNode("input");
@@ -67,8 +73,8 @@ public class ErroringTests
             script.ConnectNodes(inputId, nodeId);
             script.ConnectNodes(nodeId, outputId);
 
-            Assert.IsFalse(script.CompileNodes(), fileName);
-            Assert.IsTrue(errors.Count > 0, fileName);
+            Assert.IsFalse(script.CompileNodes(), filePath);
+            Assert.IsTrue(errors.Count > 0, filePath);
         }
     }
 
@@ -122,12 +128,17 @@ public class ErroringTests
     public void FailedTokenization()
     {
         string folder = Path.Combine(FOLDER_PATH, "Tokenization");
-        foreach (string fileName in Directory.EnumerateFiles(folder))
+        string[] files = Directory
+            .EnumerateFiles(folder, "*.ns")
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        Assert.IsTrue(files.Length > 0, "Expected tokenization fixtures.");
+
+        foreach (string filePath in files)
         {
-            string filePath = Path.Combine(folder, fileName);
             string code = File.ReadAllText(filePath);
             bool had_error = false;
-            Tokenizer tokenizer = new(code, (int line, string message) => had_error = true);
+            Tokenizer tokenizer = new(code, (_, _) => had_error = true);
             tokenizer.ScanTokens();
             Assert.IsTrue(had_error);
         }
@@ -137,9 +148,16 @@ public class ErroringTests
     public void FailedParsing()
     {
         string folder = Path.Combine(FOLDER_PATH, "Parsing");
-        foreach (string fileName in Directory.EnumerateFiles(folder))
+        string[] files = Directory
+            .EnumerateFiles(folder, "*.ns")
+            .OrderBy(path => path, StringComparer.Ordinal)
+            .ToArray();
+        Assert.IsTrue(files.Length > 0, "Expected parsing fixtures.");
+
+        foreach (string filePath in files)
         {
-            string code = File.ReadAllText(Path.Combine(folder, fileName));
+            string fileName = Path.GetFileName(filePath);
+            string code = File.ReadAllText(filePath);
             bool had_error = false;
             Tokenizer tokenizer = new(code, (_, message) => throw new AssertFailedException($"{fileName} : {message}"));
             Token[][] tokens = tokenizer.ScanTokens();
