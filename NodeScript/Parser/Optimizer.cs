@@ -162,14 +162,14 @@ internal static class Optimizer
             if (expr.Variable is not Literal || expr.Arguments.Any(a => a is not Literal))
                 return expr;
             Expr[] func_args = expr.Arguments.Prepend(expr.Variable).ToArray();
-            Result<int> result = NativeFuncs.index_of(func_args);
+            Result result = NativeFuncs.index_of(func_args.Select(arg => Value.FromObject(((Literal)arg).Value)).ToArray().AsSpan());
             if (!result.Success())
             {
                 errorHandler(lineNo, result.message!);
                 return expr;
             }
             else
-                return new Literal(result.GetValue()!);
+                return new Literal(result.GetValue().AsObject()!);
 
         }
 
@@ -182,13 +182,13 @@ internal static class Optimizer
 
             string name = expr.Callee.Name.Lexeme.ToString();
             NativeDelegate func = NativeFuncs.NativeFunctions[name];
-            Result val = func.Invoke(expr.Arguments.Select((expr) => ((Literal)expr).Value).ToArray().AsSpan());
+            Result val = func.Invoke(expr.Arguments.Select((expr) => Value.FromObject(((Literal)expr).Value)).ToArray().AsSpan());
             if (!val.Success())
             {
                 errorHandler.Invoke(lineNo, val.message!);
                 return expr;
             }
-            return new Literal(val.GetValue()!);
+            return new Literal(val.GetValue().AsObject()!);
         }
 
         public Expr VisitGroupingExpr(Grouping expr)

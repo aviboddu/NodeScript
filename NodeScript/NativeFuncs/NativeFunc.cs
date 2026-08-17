@@ -5,115 +5,122 @@ using System.Collections.Frozen;
 using static CompilerUtils;
 using static NativeFuncsKnownType;
 
-internal delegate Result NativeDelegate(Span<object> parameters);
+internal delegate Result NativeDelegate(Span<Value> parameters);
 
 internal static class NativeFuncs
 {
     public static readonly FrozenDictionary<string, NativeDelegate> NativeFunctions = GetMethods(typeof(NativeFuncs));
-    public static readonly FrozenDictionary<string, Type> NativeReturnTypes = GetReturnTypes(typeof(NativeFuncs));
+    public static readonly FrozenDictionary<string, Type> NativeReturnTypes = new Dictionary<string, Type>()
+    {
+        [nameof(length)] = typeof(int),
+        [nameof(split)] = typeof(string[]),
+        [nameof(join)] = typeof(string),
+        [nameof(index_of)] = typeof(int),
+        [nameof(slice)] = typeof(object),
+        [nameof(element_at)] = typeof(string),
+        [nameof(to_string)] = typeof(string),
+        [nameof(parse_int)] = typeof(int),
+        [nameof(can_parse)] = typeof(bool),
+        [nameof(remove_at)] = typeof(string[]),
+        [nameof(trim)] = typeof(string),
+    }.ToFrozenDictionary();
 
-    public static Result<int> length(Span<object> objs)
+    public static Result length(Span<Value> objs)
     {
 
-        if (objs.Length != 1) return Result<int>.Fail("length takes exactly one parameter");
+        if (objs.Length != 1) return Result.Fail("length takes exactly one parameter");
 
-        return objs[0] switch
+        return objs[0].Kind switch
         {
-            int => Result<int>.Fail("Cannot find the length of an integer"),
-            bool => Result<int>.Fail("Cannot find the length of a boolean"),
-            string s => Result<int>.Ok(s.Length),
-            string[] a => Result<int>.Ok(a.Length),
-            _ => Result<int>.Fail("Unknown parameter"),
+            ValueKind.Int => Result.Fail("Cannot find the length of an integer"),
+            ValueKind.Bool => Result.Fail("Cannot find the length of a boolean"),
+            ValueKind.String => Result.Ok(objs[0].AsString().Length),
+            ValueKind.StringArray => Result.Ok(objs[0].AsStringArray().Length),
+            _ => Result.Fail("Unknown parameter"),
         };
     }
 
-    public static Result<string[]> split(Span<object> objs)
+    public static Result split(Span<Value> objs)
     {
-        if (objs.Length != 2) return Result<string[]>.Fail("split takes two parameters");
-        if (objs[0] is not string || objs[1] is not string)
-            return Result<string[]>.Fail("Both parameters for split must be a string");
+        if (objs.Length != 2) return Result.Fail("split takes two parameters");
+        if (objs[0].Kind != ValueKind.String || objs[1].Kind != ValueKind.String)
+            return Result.Fail("Both parameters for split must be a string");
         return split_str_str(objs);
     }
 
-    public static Result<string> join(Span<object> objs)
+    public static Result join(Span<Value> objs)
     {
-        if (objs.Length != 2) return Result<string>.Fail("join takes two parameters");
-        if (objs[0] is not string || objs[1] is not string[])
-            return Result<string>.Fail("join takes one string and one string array");
+        if (objs.Length != 2) return Result.Fail("join takes two parameters");
+        if (objs[0].Kind != ValueKind.String || objs[1].Kind != ValueKind.StringArray)
+            return Result.Fail("join takes one string and one string array");
 
         return join_str_stra(objs);
     }
 
-    public static Result<int> index_of(Span<object> objs)
+    public static Result index_of(Span<Value> objs)
     {
-        if (objs.Length != 2) return Result<int>.Fail("index_of takes two parameters");
-        if (objs[0] is not string || objs[1] is not string)
-            return Result<int>.Fail("index_of takes two strings");
+        if (objs.Length != 2) return Result.Fail("index_of takes two parameters");
+        if (objs[0].Kind != ValueKind.String || objs[1].Kind != ValueKind.String)
+            return Result.Fail("index_of takes two strings");
 
         return index_of_str_str(objs);
     }
 
-    public static Result<object> slice(Span<object> objs)
+    public static Result slice(Span<Value> objs)
     {
-        if (objs.Length != 3) return Result<object>.Fail("slice takes three parameters");
-        if (!(objs[0] is string || objs[0] is string[]) || objs[1] is not int || objs[2] is not int)
-            return Result<object>.Fail("slice takes one string or string array and two ints");
+        if (objs.Length != 3) return Result.Fail("slice takes three parameters");
+        if (!(objs[0].Kind is ValueKind.String or ValueKind.StringArray) || objs[1].Kind != ValueKind.Int || objs[2].Kind != ValueKind.Int)
+            return Result.Fail("slice takes one string or string array and two ints");
 
-        if (objs[0] is string s)
-        {
-            Result<string> strRes = slice_str_int_int(objs);
-            if (!strRes.Success()) return Result<object>.Fail(strRes.message!);
-            return Result<object>.Ok(strRes.GetValue()!);
-        }
-        Result<string[]> res = slice_stra_int_int(objs);
-        if (!res.Success()) return Result<object>.Fail(res.message!);
-        return Result<object>.Ok(res.GetValue()!);
+        return objs[0].Kind == ValueKind.String
+            ? slice_str_int_int(objs)
+            : slice_stra_int_int(objs);
     }
 
-    public static Result<string> element_at(Span<object> objs)
+    public static Result element_at(Span<Value> objs)
     {
-        if (objs.Length != 2) return Result<string>.Fail("element_at takes two parameters");
-        if (!(objs[0] is string || objs[0] is string[]) || objs[1] is not int)
-            return Result<string>.Fail("element_at takes one string or string array and one int");
+        if (objs.Length != 2) return Result.Fail("element_at takes two parameters");
+        if (!(objs[0].Kind is ValueKind.String or ValueKind.StringArray) || objs[1].Kind != ValueKind.Int)
+            return Result.Fail("element_at takes one string or string array and one int");
 
-        if (objs[0] is string s)
+        if (objs[0].Kind == ValueKind.String)
             return element_at_str_int(objs);
         return element_at_stra_int(objs);
     }
 
-    public static Result<string> to_string(Span<object> objs)
+    public static Result to_string(Span<Value> objs)
     {
-        if (objs.Length != 1) return Result<string>.Fail("to_string takes one parameter");
-        return Result<string>.Ok(objs[0].ToString()!);
+        if (objs.Length != 1) return Result.Fail("to_string takes one parameter");
+        return Result.Ok(objs[0].AsObject()?.ToString() ?? string.Empty);
     }
 
-    public static Result<int> parse_int(Span<object> objs)
+    public static Result parse_int(Span<Value> objs)
     {
-        if (objs.Length != 1) return Result<int>.Fail("parse_int takes one parameter");
-        if (objs[0] is not string s) return Result<int>.Fail("parse_int takes in a single string");
+        if (objs.Length != 1) return Result.Fail("parse_int takes one parameter");
+        if (objs[0].Kind != ValueKind.String) return Result.Fail("parse_int takes in a single string");
         return parse_int_str(objs);
     }
 
-    public static Result<bool> can_parse(Span<object> objs)
+    public static Result can_parse(Span<Value> objs)
     {
-        if (objs.Length != 1) return Result<bool>.Fail("can_parse takes one parameter");
-        if (objs[0] is not string) return Result<bool>.Ok(false);
+        if (objs.Length != 1) return Result.Fail("can_parse takes one parameter");
+        if (objs[0].Kind != ValueKind.String) return Result.Ok(false);
         return can_parse_str(objs);
     }
 
-    public static Result<string[]> remove_at(Span<object> objs)
+    public static Result remove_at(Span<Value> objs)
     {
-        if (objs.Length != 2) return Result<string[]>.Fail("remove_at takes two parameters");
-        if (objs[0] is not string[] a || objs[1] is not int i)
-            return Result<string[]>.Fail("remove_at takes in a string array and an int");
+        if (objs.Length != 2) return Result.Fail("remove_at takes two parameters");
+        if (objs[0].Kind != ValueKind.StringArray || objs[1].Kind != ValueKind.Int)
+            return Result.Fail("remove_at takes in a string array and an int");
         return remove_at_stra_int(objs);
     }
 
-    public static Result<string> trim(Span<object> objs)
+    public static Result trim(Span<Value> objs)
     {
-        if (objs.Length != 1) return Result<string>.Fail("trim takes one parameter");
-        if (objs[0] is not string)
-            return Result<string>.Fail("trim takes in a string");
+        if (objs.Length != 1) return Result.Fail("trim takes one parameter");
+        if (objs[0].Kind != ValueKind.String)
+            return Result.Fail("trim takes in a string");
         return trim_str(objs);
     }
 }

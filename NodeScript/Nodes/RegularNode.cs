@@ -16,9 +16,9 @@ internal sealed class RegularNode : Node
     private readonly byte[] code;
     private ref byte codePtr => ref MemoryMarshal.GetArrayDataReference(code);
     private readonly object[] constants;
-    private readonly object[] stack;
-    private ref object stackPtr => ref MemoryMarshal.GetArrayDataReference(stack);
-    private readonly object[] variables;
+    private readonly Value[] stack;
+    private ref Value stackPtr => ref MemoryMarshal.GetArrayDataReference(stack);
+    private readonly Value[] variables;
     private readonly BitArray initVar;
     private readonly int[] lines;
 
@@ -31,8 +31,8 @@ internal sealed class RegularNode : Node
         code = compiledData.Code;
         constants = compiledData.Constants;
         lines = compiledData.Lines;
-        stack = new object[compiledData.MaxStackSize];
-        variables = new object[compiledData.NumVariables];
+        stack = new Value[compiledData.MaxStackSize];
+        variables = new Value[compiledData.NumVariables];
         initVar = new(compiledData.NumVariables);
         this.outputs = outputs;
         this.runtimeError = runtimeError;
@@ -42,10 +42,10 @@ internal sealed class RegularNode : Node
 
     private void InitGlobals()
     {
-        variables[INPUT_VARIABLE_IDX] = string.Empty; // input
+        variables[INPUT_VARIABLE_IDX] = Value.FromString(string.Empty); // input
         initVar[INPUT_VARIABLE_IDX] = true;
 
-        variables[MEM_VARIABLE_IDX] = string.Empty; // mem
+        variables[MEM_VARIABLE_IDX] = Value.FromString(string.Empty); // mem
         initVar[MEM_VARIABLE_IDX] = true;
     }
 
@@ -60,7 +60,7 @@ internal sealed class RegularNode : Node
     {
         if (State == NodeState.IDLE)
         {
-            variables[INPUT_VARIABLE_IDX] = input;
+            variables[INPUT_VARIABLE_IDX] = Value.FromString(input);
             nextInstruction = 0;
             State = NodeState.RUNNING;
             return true;
@@ -73,7 +73,7 @@ internal sealed class RegularNode : Node
         if (State == NodeState.IDLE) return;
         while (!panic)
         {
-            object v1, v2;
+            Value v1, v2;
             int num1;
             bool b;
             ushort idx, jump_val;
@@ -82,9 +82,9 @@ internal sealed class RegularNode : Node
             OpCode nextOp = (OpCode)NextByte();
             switch (nextOp)
             {
-                case CONSTANT: PushStack(constants[NextByte()]); break;
-                case TRUE: PushStack(true); break;
-                case FALSE: PushStack(false); break;
+                case CONSTANT: PushStack(Value.FromObject(constants[NextByte()])); break;
+                case TRUE: PushStack(Value.FromBool(true)); break;
+                case FALSE: PushStack(Value.FromBool(false)); break;
                 case POP: PopStack(); break;
                 case GET:
                     idx = NextShort();
@@ -102,12 +102,12 @@ internal sealed class RegularNode : Node
                 case EQUAL:
                     v2 = PopStack();
                     v1 = PopStack();
-                    PushStack(v1.Equals(v2));
+                    PushStack(Value.FromBool(v1.Equals(v2)));
                     break;
                 case NOT_EQUAL:
                     v2 = PopStack();
                     v1 = PopStack();
-                    PushStack(!v1.Equals(v2));
+                    PushStack(Value.FromBool(!v1.Equals(v2)));
                     break;
                 case GREATER:
                 case GREATER_EQUAL:
@@ -127,81 +127,87 @@ internal sealed class RegularNode : Node
                 case DIVIDEI:
                     v2 = PopStack();
                     v1 = PopStack();
-                    BinaryArithmeticUnchecked(nextOp, Unsafe.Unbox<int>(v1), Unsafe.Unbox<int>(v2));
+                    BinaryArithmeticUnchecked(nextOp, v1.AsInt(), v2.AsInt());
                     break;
                 case ADD:
                     v2 = PopStack();
                     v1 = PopStack();
-                    switch (v1)
+                    switch (v1.Kind)
                     {
-                        case int n: if (ValidateType<int>(v2)) PushStack(n + Unsafe.Unbox<int>(v2)); break;
-                        case string s: if (ValidateType<string>(v2)) PushStack(s + Unsafe.As<string>(v2)); break;
-                        case string[] a: if (ValidateType<string[]>(v2)) PushStack(a.Concat(Unsafe.As<string[]>(v2))); break;
+                        case ValueKind.Int:
+                            if (ValidateType<int>(v2)) PushStack(Value.FromInt(v1.AsInt() + v2.AsInt()));
+                            break;
+                        case ValueKind.String:
+                            if (ValidateType<string>(v2)) PushStack(Value.FromString(v1.AsString() + v2.AsString()));
+                            break;
+                        case ValueKind.StringArray:
+                            if (ValidateType<string[]>(v2)) PushStack(Value.FromStringArray(v1.AsStringArray().Concat(v2.AsStringArray()).ToArray()));
+                            break;
                         default: Err("Arguments must be either int, string or string[]"); break;
                     }
                     break;
                 case ADDI:
                     v2 = PopStack();
                     v1 = PopStack();
-                    PushStack(Unsafe.Unbox<int>(v1) + Unsafe.Unbox<int>(v2));
+                    PushStack(Value.FromInt(v1.AsInt() + v2.AsInt()));
                     break;
                 case ADDS:
                     v2 = PopStack();
                     v1 = PopStack();
-                    PushStack(Unsafe.As<string>(v1) + Unsafe.As<string>(v2));
+                    PushStack(Value.FromString(v1.AsString() + v2.AsString()));
                     break;
                 case ADDA:
                     v2 = PopStack();
                     v1 = PopStack();
-                    PushStack(Unsafe.As<string[]>(v1).Concat(Unsafe.As<string[]>(v2)));
+                    PushStack(Value.FromStringArray(v1.AsStringArray().Concat(v2.AsStringArray()).ToArray()));
                     break;
                 case AND:
                     v2 = PopStack();
                     v1 = PopStack();
-                    if (ValidateType<bool>(v1, v2)) PushStack(Unsafe.Unbox<bool>(v1) && Unsafe.Unbox<bool>(v2));
+                    if (ValidateType<bool>(v1, v2)) PushStack(Value.FromBool(v1.AsBool() && v2.AsBool()));
                     break;
                 case ANDB:
                     v2 = PopStack();
                     v1 = PopStack();
-                    PushStack(Unsafe.Unbox<bool>(v1) && Unsafe.Unbox<bool>(v2));
+                    PushStack(Value.FromBool(v1.AsBool() && v2.AsBool()));
                     break;
                 case OR:
                     v2 = PopStack();
                     v1 = PopStack();
-                    if (ValidateType<bool>(v1, v2)) PushStack(Unsafe.Unbox<bool>(v1) || Unsafe.Unbox<bool>(v2));
+                    if (ValidateType<bool>(v1, v2)) PushStack(Value.FromBool(v1.AsBool() || v2.AsBool()));
                     break;
                 case ORB:
                     v2 = PopStack();
                     v1 = PopStack();
-                    PushStack(Unsafe.Unbox<bool>(v1) || Unsafe.Unbox<bool>(v2));
+                    PushStack(Value.FromBool(v1.AsBool() || v2.AsBool()));
                     break;
                 case NEGATE:
                     v1 = PopStack();
-                    if (ValidateType<int>(v1)) PushStack(-Unsafe.Unbox<int>(v1));
+                    if (ValidateType<int>(v1)) PushStack(Value.FromInt(-v1.AsInt()));
                     break;
                 case NEGATEI:
                     v1 = PopStack();
-                    PushStack(-Unsafe.Unbox<int>(v1));
+                    PushStack(Value.FromInt(-v1.AsInt()));
                     break;
                 case NOT:
                     v1 = PopStack();
-                    if (ValidateType<bool>(v1)) PushStack(!Unsafe.Unbox<bool>(v1));
+                    if (ValidateType<bool>(v1)) PushStack(Value.FromBool(!v1.AsBool()));
                     break;
                 case NOTB:
                     v1 = PopStack();
-                    PushStack(!Unsafe.Unbox<bool>(v1));
+                    PushStack(Value.FromBool(!v1.AsBool()));
                     break;
                 case PRINT:
                     v2 = PopStack();
                     v1 = PopStack();
                     if (ValidateType<int>(v1) && ValidateType<string>(v2))
                     {
-                        int outputIndex = Unsafe.Unbox<int>(v1);
+                        int outputIndex = v1.AsInt();
                         if (outputs is null || outputIndex < 0 || outputIndex >= outputs.Length)
                         {
                             Err($"Output index {outputIndex} is out of range");
                         }
-                        else if (!outputs[outputIndex].PushInput(Unsafe.As<string>(v2)))
+                        else if (!outputs[outputIndex].PushInput(v2.AsString()))
                         {
                             PushStack(v1);
                             PushStack(v2);
@@ -217,12 +223,12 @@ internal sealed class RegularNode : Node
                 case PRINTIS:
                     v2 = PopStack();
                     v1 = PopStack();
-                    int knownOutputIndex = Unsafe.Unbox<int>(v1);
+                    int knownOutputIndex = v1.AsInt();
                     if (outputs is null || knownOutputIndex < 0 || knownOutputIndex >= outputs.Length)
                     {
                         Err($"Output index {knownOutputIndex} is out of range");
                     }
-                    else if (!outputs[knownOutputIndex].PushInput(Unsafe.As<string>(v2)))
+                    else if (!outputs[knownOutputIndex].PushInput(v2.AsString()))
                     {
                         PushStack(v1);
                         PushStack(v2);
@@ -240,12 +246,12 @@ internal sealed class RegularNode : Node
                     return;
                 case JUMP_IF_FALSE:
                     v1 = PopStack();
-                    b = v1 switch
+                    b = v1.Kind switch
                     {
-                        int i => i != 0,
-                        bool l => l,
-                        string s => s.Length != 0,
-                        string[] a => a.Length != 0,
+                        ValueKind.Int => v1.AsInt() != 0,
+                        ValueKind.Bool => v1.AsBool(),
+                        ValueKind.String => v1.AsString().Length != 0,
+                        ValueKind.StringArray => v1.AsStringArray().Length != 0,
                         _ => false,
                     };
                     jump_val = NextShort();
@@ -260,13 +266,15 @@ internal sealed class RegularNode : Node
                     if (!result.Success())
                         Err(result.message!);
                     else
-                        PushStack(result.GetValue()!);
+                        PushStack(result.GetValue());
                     break;
                 case RETURN:
                     State = NodeState.IDLE;
                     initVar.SetAll(false);
                     initVar[INPUT_VARIABLE_IDX] = true;
                     initVar[MEM_VARIABLE_IDX] = true;
+                    ClearDeadVariableReferences();
+                    ClearStackReferences();
                     return;
                 case ENDIF:
                 case NOP: return;
@@ -280,6 +288,8 @@ internal sealed class RegularNode : Node
         nextInstruction = 0;
         initVar.SetAll(false);
         panic = false;
+        ClearAllVariableReferences();
+        ClearStackReferences();
         InitGlobals();
     }
 
@@ -291,21 +301,28 @@ internal sealed class RegularNode : Node
         return val;
     }
 
-    private void PushStack(object val)
+    private void PushStack(Value val)
     {
         Unsafe.Add(ref stackPtr, stackTop++) = val;
     }
-    private object PopStack() => Unsafe.Add(ref stackPtr, --stackTop);
+    private Value PopStack()
+    {
+        ref Value valRef = ref Unsafe.Add(ref stackPtr, --stackTop);
+        Value val = valRef;
+        if (val.IsReference)
+            valRef = default;
+        return val;
+    }
 
     private void BinaryArithmetic(OpCode op)
     {
-        object val2 = PopStack();
-        object val1 = PopStack();
+        Value val2 = PopStack();
+        Value val1 = PopStack();
 
         if (!ValidateType<int>(val1, val2))
             return;
 
-        BinaryArithmeticUnchecked(op, Unsafe.Unbox<int>(val1), Unsafe.Unbox<int>(val2));
+        BinaryArithmeticUnchecked(op, val1.AsInt(), val2.AsInt());
     }
 
     private void BinaryArithmeticUnchecked(OpCode op, int num1, int num2)
@@ -313,23 +330,23 @@ internal sealed class RegularNode : Node
         switch (op)
         {
             case GREATER:
-            case GREATERI: PushStack(num1 > num2); break;
+            case GREATERI: PushStack(Value.FromBool(num1 > num2)); break;
             case GREATER_EQUAL:
-            case GREATER_EQUALI: PushStack(num1 >= num2); break;
+            case GREATER_EQUALI: PushStack(Value.FromBool(num1 >= num2)); break;
             case LESS:
-            case LESSI: PushStack(num1 < num2); break;
+            case LESSI: PushStack(Value.FromBool(num1 < num2)); break;
             case LESS_EQUAL:
-            case LESS_EQUALI: PushStack(num1 <= num2); break;
+            case LESS_EQUALI: PushStack(Value.FromBool(num1 <= num2)); break;
             case SUBTRACT:
-            case SUBTRACTI: PushStack(num1 - num2); break;
+            case SUBTRACTI: PushStack(Value.FromInt(num1 - num2)); break;
             case MULTIPLY:
-            case MULTIPLYI: PushStack(num1 * num2); break;
+            case MULTIPLYI: PushStack(Value.FromInt(num1 * num2)); break;
             case DIVIDE:
             case DIVIDEI:
                 if (num2 == 0)
                     Err("Cannot divide by 0");
                 else
-                    PushStack(num1 / num2);
+                    PushStack(Value.FromInt(num1 / num2));
                 break;
         }
     }
@@ -345,11 +362,48 @@ internal sealed class RegularNode : Node
         return outputs is null ? [] : outputs;
     }
 
-    private bool ValidateType<T>(params object[] vals)
+    private bool ValidateType<T>(params Value[] vals)
     {
-        bool valid = vals.All((v) => v is T);
+        ValueKind expected = typeof(T) == typeof(int)
+            ? ValueKind.Int
+            : typeof(T) == typeof(bool)
+            ? ValueKind.Bool
+            : typeof(T) == typeof(string)
+            ? ValueKind.String
+            : typeof(T) == typeof(string[])
+            ? ValueKind.StringArray
+            : ValueKind.Object;
+        bool valid = vals.All(v => v.Kind == expected || (expected == ValueKind.Object && v.Kind == ValueKind.Null));
         if (!valid) Err($"Arguments must be of type {typeof(T).Name}");
         return valid;
+    }
+
+    private void ClearStackReferences()
+    {
+        for (int i = 0; i < stackTop; i++)
+        {
+            if (stack[i].IsReference)
+                stack[i] = default;
+        }
+        stackTop = 0;
+    }
+
+    private void ClearDeadVariableReferences()
+    {
+        for (int i = 0; i < variables.Length; i++)
+        {
+            if (!initVar[i] && variables[i].IsReference)
+                variables[i] = default;
+        }
+    }
+
+    private void ClearAllVariableReferences()
+    {
+        for (int i = 0; i < variables.Length; i++)
+        {
+            if (variables[i].IsReference)
+                variables[i] = default;
+        }
     }
 
     private void Err(string message)
