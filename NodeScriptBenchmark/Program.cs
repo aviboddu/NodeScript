@@ -1,57 +1,26 @@
-﻿using NodeScript;
-using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Running;
 
-namespace NodeScriptBenchmark
+namespace NodeScriptBenchmark;
+
+/// <summary>
+/// Entry point for the NodeScript benchmark suite.
+/// <para>
+/// CI-safe run (fast, used by the Benchmark workflow): <c>dotnet run -c Release --project ./NodeScriptBenchmark</c>
+/// </para>
+/// <para>
+/// Full/local run (statistically robust, longer): <c>dotnet run -c Release --project ./NodeScriptBenchmark -- --job Medium</c>
+/// </para>
+/// <para>
+/// Run a subset (e.g. only compile benchmarks): <c>dotnet run -c Release --project ./NodeScriptBenchmark -- --filter *PipelineBenchmarks*</c>
+/// </para>
+/// </summary>
+public class Program
 {
-    [ShortRunJob]
-    public class Benchmark
+    public static void Main(string[] args)
     {
-        private readonly Script script;
-
-        public Benchmark()
-        {
-            string input_data = File.ReadAllText("../../../../../../../TestData/LongestString.in");
-            string code = File.ReadAllText("../../../../../../../TestData/LongestString.ns");
-            script = new(CompileError, RuntimeError);
-
-            int input_id = script.AddInputNode(input_data);
-            int node_id = script.AddRegularNode(code);
-            int output_id = script.AddOutputNode();
-            script.ConnectNodes(input_id, node_id);
-            script.ConnectNodes(node_id, output_id);
-            script.CompileNodes();
-        }
-
-        [Benchmark]
-        public void Compile()
-        {
-            script.CompileNodes();
-        }
-
-        [Benchmark]
-        public void Execute()
-        {
-            script.Run();
-            script.Reset();
-        }
-
-        private static void CompileError(int id, int line, string message)
-        {
-            Console.WriteLine($"Compilation error at node {id}, line {line}: {message}");
-        }
-
-        private static void RuntimeError(int id, int line, string message)
-        {
-            Console.WriteLine($"Runtime error at node {id}, line {line}: {message}");
-        }
-    }
-
-    public class Program
-    {
-        public static void Main(string[] args)
-        {
-            BenchmarkRunner.Run<Benchmark>(args: args);
-        }
+        // RunAll (rather than Run) runs every benchmark class non-interactively, which keeps the
+        // CI workflow's argument-less invocation from blocking on an interactive selection prompt.
+        // CLI options such as --job, --filter or --anyCategories are still honored.
+        BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).RunAll(args: args);
     }
 }

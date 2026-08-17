@@ -1,0 +1,6 @@
+SET x, parse_int(input)
+SET x, x + 1
+SET x, x - 1
+SET x, x * 2
+SET x, x / 2
+PRINT 0, to_string(x)

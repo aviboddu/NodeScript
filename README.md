@@ -38,4 +38,18 @@ Every line contains a single statement. All statements will start with a relevan
 - ENDIF: Marks the end of the IF clause. Either ends the IF code section or the ELSE code section. Only one is needed per IF/ELSE statement. Syntax `ENDIF`
 - NOP: Does nothing. Helpful for synchronizing the timing of multiple nodes. Syntax `NOP`
 
+## Benchmarks
+`NodeScriptBenchmark` measures each phase of the compile pipeline (tokenize/parse, optimize/validate/compile),
+cold vs. warm execution, `Reset`, and complete graph runs across several representative workloads
+(straight-line arithmetic, branch-heavy code, native calls, string/array operations, compile errors, and
+runtime errors, each in tiny/medium/max sizes) and graph shapes (linear, fan-out, fan-in, disconnected, and
+cycle). All benchmark inputs are deterministic and checked into `NodeScriptBenchmark/TestData`. Results report
+mean/median, throughput, allocated bytes and GC collections via `MemoryDiagnoser`, alongside the host runtime,
+architecture and GC settings that BenchmarkDotNet records automatically. A baseline run is recorded in
+[`NodeScriptBenchmark/Baseline/README.md`](NodeScriptBenchmark/Baseline/README.md).
+
+- CI-safe subset (fast, used by the Benchmark workflow): `dotnet run -c Release --project ./NodeScriptBenchmark`
+- Full/local run (more iterations, statistically robust): `dotnet run -c Release --project ./NodeScriptBenchmark -- --job Medium`
+- A subset of benchmarks: `dotnet run -c Release --project ./NodeScriptBenchmark -- --filter *PipelineBenchmarks*`
+
 Development and CI details are documented in the [wiki](https://github.com/aviboddu/NodeScript/wiki).

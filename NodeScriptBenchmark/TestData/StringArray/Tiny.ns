@@ -1,0 +1,6 @@
+SET arr, split(",", input)
+SET first, arr[0]
+SET last, arr[length(arr) - 1]
+SET sub, input[0:5]
+SET combined, join("|", arr[0:2])
+PRINT 0, combined
