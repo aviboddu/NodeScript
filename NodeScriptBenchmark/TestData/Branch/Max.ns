@@ -1,0 +1,503 @@
+SET x, parse_int(input)
+SET count, 0
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -3
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > 4
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+IF x > -10
+SET count, count + 1
+ELSE
+SET count, count - 1
+ENDIF
+PRINT 0, to_string(count)

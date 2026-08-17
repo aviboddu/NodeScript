@@ -4,6 +4,7 @@ using static NodeScript.CompilerUtils;
 
 [assembly: CLSCompliant(true)]
 [assembly: InternalsVisibleTo("NodeScriptTest")]
+[assembly: InternalsVisibleTo("NodeScriptBenchmark")]
 
 namespace NodeScript;
 
