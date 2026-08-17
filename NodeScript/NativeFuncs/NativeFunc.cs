@@ -1,17 +1,12 @@
 #pragma warning disable IDE1006 // Naming Styles
 namespace NodeScript;
 
-using System.Collections.Frozen;
-using static CompilerUtils;
 using static NativeFuncsKnownType;
 
 internal delegate Result NativeDelegate(Span<object> parameters);
 
 internal static class NativeFuncs
 {
-    public static readonly FrozenDictionary<string, NativeDelegate> NativeFunctions = GetMethods(typeof(NativeFuncs));
-    public static readonly FrozenDictionary<string, Type> NativeReturnTypes = GetReturnTypes(typeof(NativeFuncs));
-
     public static Result<int> length(Span<object> objs)
     {
 

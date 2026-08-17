@@ -1,10 +1,8 @@
 namespace NodeScript;
 
 using System.Diagnostics;
-
 using static TokenType;
 using static CompilerUtils;
-using System.Text;
 using System.Runtime.InteropServices;
 using System.Runtime.CompilerServices;
 
@@ -313,16 +311,16 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
             c.stackSize -= expr.Arguments.Length - 1;
 
             string f = expr.Arguments.Length == 1 ? "element_at" : "slice";
-            StringBuilder funcName = new(f);
-            funcName.Append(NativeFuncsKnownType.typeToStr[expr.Variable.Type]);
-            foreach (Expr ex in expr.Arguments)
-                funcName.Append(NativeFuncsKnownType.typeToStr[ex.Type]);
-            if (NativeFuncsKnownType.NativeFunctions.TryGetValue(funcName.ToString(), out NativeDelegate? value))
-                Emit(OpCode.CALL_TYPE_KNOWN, MakeConst(value), (byte)(expr.Arguments.Length + 1));
-            else if (NativeFuncs.NativeFunctions.TryGetValue(f, out value))
-                Emit(OpCode.CALL, MakeConst(value), (byte)(expr.Arguments.Length + 1));
-            else
+            Type[] argumentTypes = new Type[expr.Arguments.Length + 1];
+            argumentTypes[0] = expr.Variable.Type;
+            for (int i = 0; i < expr.Arguments.Length; i++)
+                argumentTypes[i + 1] = expr.Arguments[i].Type;
+            if (!NativeFunctionRegistry.TryResolveForCompile(f, argumentTypes, out NativeFunctionDescriptor descriptor, out string? error))
+            {
+                c.errorHandler(currentLine, error ?? $"Function {f} does not exist");
                 return false;
+            }
+            Emit(OpCode.CALL, descriptor.Id, (byte)argumentTypes.Length);
             return true;
         }
 
@@ -331,15 +329,16 @@ internal class Compiler(Operation?[] operations, InternalErrorHandler errorHandl
             if (!expr.Arguments.All((e) => e.Accept(this))) return false;
             c.stackSize -= expr.Arguments.Count - 1;
 
-            StringBuilder funcName = new(expr.Callee.Name.Lexeme.ToString());
-            foreach (Expr ex in expr.Arguments)
-                funcName.Append(NativeFuncsKnownType.typeToStr[ex.Type]);
-            if (NativeFuncsKnownType.NativeFunctions.TryGetValue(funcName.ToString(), out NativeDelegate? value))
-                Emit(OpCode.CALL, MakeConst(value), (byte)expr.Arguments.Count);
-            else if (NativeFuncs.NativeFunctions.TryGetValue(expr.Callee.Name.Lexeme.ToString(), out value))
-                Emit(OpCode.CALL, MakeConst(value), (byte)expr.Arguments.Count);
-            else
+            Type[] argumentTypes = new Type[expr.Arguments.Count];
+            for (int i = 0; i < expr.Arguments.Count; i++)
+                argumentTypes[i] = expr.Arguments[i].Type;
+            string name = expr.Callee.Name.Lexeme.ToString();
+            if (!NativeFunctionRegistry.TryResolveForCompile(name, argumentTypes, out NativeFunctionDescriptor descriptor, out string? error))
+            {
+                c.errorHandler(currentLine, error ?? $"Function {name} does not exist");
                 return false;
+            }
+            Emit(OpCode.CALL, descriptor.Id, (byte)argumentTypes.Length);
             return true;
         }
 

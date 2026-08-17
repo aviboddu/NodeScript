@@ -24,6 +24,7 @@ NodeScript is a rudimentary programming language designed to function on 'nodes'
     - string[]
     - int
     - bool
+- Built-in native function registration is hand-declared (no runtime reflection), which improves trimming and NativeAOT compatibility and reduces cold-start overhead.
 
 Notably, there are **NO** loops within the scripting itself. No while. No for.
 Execution will occur line by line and will only start when a node receives an input string to be processed.

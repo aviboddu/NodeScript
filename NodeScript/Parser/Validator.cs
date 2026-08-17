@@ -1,7 +1,6 @@
 namespace NodeScript;
 
 using System.Collections;
-using System.Text;
 using static CompilerUtils;
 using static TokenType;
 
@@ -219,17 +218,7 @@ internal static class Validator
             for (int i = 0; i < argumentTypes.Length; i++)
                 argumentTypes[i] = expr.Arguments[i].Accept(this);
 
-            StringBuilder functionNameKnownType = new(expr.Callee.Name.Lexeme.ToString());
-            foreach (Type t in argumentTypes)
-                functionNameKnownType.Append(NativeFuncsKnownType.typeToStr[t]);
-
-            if (NativeFuncsKnownType.NativeReturnTypes.TryGetValue(functionNameKnownType.ToString(), out Type? value))
-            {
-                expr.Type = value;
-                return expr.Type;
-            }
-
-            if (NativeFuncs.NativeReturnTypes.TryGetValue(expr.Callee.Name.Lexeme.ToString(), out value))
+            if (NativeFunctionRegistry.TryGetReturnType(expr.Callee.Name.Lexeme.ToString(), argumentTypes, out Type? value) && value is not null)
             {
                 expr.Type = value;
                 return expr.Type;
@@ -388,11 +377,15 @@ internal static class Validator
 
         public bool VisitCallExpr(Call expr)
         {
+            bool argsValid = expr.Arguments.All((a) => a.Accept(this));
             string name = expr.Callee.Name.Lexeme.ToString();
-            bool funcExists = NativeFuncs.NativeFunctions.ContainsKey(name);
-            if (!funcExists)
-                errorHandler.Invoke(lineNo, $"Function {name} does not exist");
-            return funcExists;
+            Type[] argumentTypes = new Type[expr.Arguments.Count];
+            for (int i = 0; i < argumentTypes.Length; i++)
+                argumentTypes[i] = expr.Arguments[i].Type;
+            bool valid = NativeFunctionRegistry.TryResolveForCompile(name, argumentTypes, out _, out string? error);
+            if (!valid && error is not null)
+                errorHandler.Invoke(lineNo, error);
+            return argsValid && valid;
         }
 
         public bool VisitGroupingExpr(Grouping expr) => expr.Expression.Accept(this);

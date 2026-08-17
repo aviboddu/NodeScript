@@ -161,15 +161,21 @@ internal static class Optimizer
                 expr.Arguments[i] = expr.Arguments[i].Accept(this);
             if (expr.Variable is not Literal || expr.Arguments.Any(a => a is not Literal))
                 return expr;
-            Expr[] func_args = expr.Arguments.Prepend(expr.Variable).ToArray();
-            Result<int> result = NativeFuncs.index_of(func_args);
+            string name = expr.Arguments.Length == 1 ? "element_at" : "slice";
+            Expr[] funcArgs = expr.Arguments.Prepend(expr.Variable).ToArray();
+            Type[] argumentTypes = funcArgs.Select(a => a.Type).ToArray();
+            if (!NativeFunctionRegistry.TryResolveForCompile(name, argumentTypes, out NativeFunctionDescriptor descriptor, out string? error))
+            {
+                errorHandler(lineNo, error!);
+                return expr;
+            }
+            Result result = descriptor.Target(funcArgs.Select((arg) => ((Literal)arg).Value).ToArray().AsSpan());
             if (!result.Success())
             {
                 errorHandler(lineNo, result.message!);
                 return expr;
             }
-            else
-                return new Literal(result.GetValue()!);
+            return new Literal(result.GetValue()!);
 
         }
 
@@ -181,8 +187,13 @@ internal static class Optimizer
                 return expr;
 
             string name = expr.Callee.Name.Lexeme.ToString();
-            NativeDelegate func = NativeFuncs.NativeFunctions[name];
-            Result val = func.Invoke(expr.Arguments.Select((expr) => ((Literal)expr).Value).ToArray().AsSpan());
+            Type[] argumentTypes = expr.Arguments.Select(a => a.Type).ToArray();
+            if (!NativeFunctionRegistry.TryResolveForCompile(name, argumentTypes, out NativeFunctionDescriptor descriptor, out string? error))
+            {
+                errorHandler(lineNo, error!);
+                return expr;
+            }
+            Result val = descriptor.Target(expr.Arguments.Select((arg) => ((Literal)arg).Value).ToArray().AsSpan());
             if (!val.Success())
             {
                 errorHandler.Invoke(lineNo, val.message!);

@@ -77,7 +77,6 @@ internal sealed class RegularNode : Node
             int num1;
             bool b;
             ushort idx, jump_val;
-            NativeDelegate func;
             Result result;
             OpCode nextOp = (OpCode)NextByte();
             switch (nextOp)
@@ -254,9 +253,9 @@ internal sealed class RegularNode : Node
                     return;
                 case CALL_TYPE_KNOWN:
                 case CALL:
-                    func = (NativeDelegate)constants[NextByte()];
+                    byte nativeFuncId = NextByte();
                     num1 = NextByte();
-                    result = CallFunc(func, num1);
+                    result = CallFunc(nativeFuncId, num1);
                     if (!result.Success())
                         Err(result.message!);
                     else
@@ -334,10 +333,12 @@ internal sealed class RegularNode : Node
         }
     }
 
-    private Result CallFunc(NativeDelegate func, int numParams)
+    private Result CallFunc(byte nativeFuncId, int numParams)
     {
         stackTop -= numParams;
-        return func(stack.AsSpan(stackTop, numParams));
+        if (!NativeFunctionRegistry.TryGetById(nativeFuncId, out NativeFunctionDescriptor descriptor))
+            return Result<object>.Fail($"Unknown native function id {nativeFuncId}");
+        return descriptor.Target(stack.AsSpan(stackTop, numParams));
     }
 
     public override Node[] OutputNodes()
