@@ -57,4 +57,67 @@ public class NativeFunctionTests
         script.Run();
         Assert.AreEqual(string.Empty, script.GetOutput());
     }
+
+    [TestMethod]
+    public void RuntimeValuesPreserveEqualitySemanticsAcrossKinds()
+    {
+        const string code = """
+            SET intVal, 1 + 2
+            SET arrVal, split(",", input)
+            SET x, element_at(arrVal, 0)
+            SET one, parse_int(element_at(arrVal, 1))
+            SET boolVal, one == one
+            SET strVal, "ab" + "c"
+            SET truth, can_parse(input)
+            PRINT 0, to_string(intVal)
+            PRINT 0, to_string(boolVal)
+            PRINT 0, strVal
+            PRINT 0, to_string(length(arrVal))
+            PRINT 0, to_string(arrVal == arrVal)
+            PRINT 0, to_string(arrVal == split(",", input))
+            PRINT 0, to_string(x == x)
+            PRINT 0, to_string(one == one)
+            PRINT 0, to_string(truth == truth)
+            """;
+        List<string> diagnostics = [];
+        Script script = ScriptTestHelpers.CreateLinearScript(
+            code,
+            "x,1",
+            compileError: (_, _, message) => diagnostics.Add($"compile:{message}"),
+            runtimeError: (_, _, message) => diagnostics.Add(message));
+
+        Assert.IsTrue(script.CompileNodes(), string.Join(Environment.NewLine, diagnostics));
+        script.Run();
+
+        string expected = string.Join(Environment.NewLine, ["3", "True", "abc", "2", "True", "False", "True", "True", "True"]) + Environment.NewLine;
+        Assert.AreEqual(0, diagnostics.Count);
+        Assert.AreEqual(expected, script.GetOutput());
+    }
+
+    [TestMethod]
+    public void RepeatedResetAndRunCyclesRemainStable()
+    {
+        const string code = """
+            SET parts, split(",", input)
+            SET left, parse_int(element_at(parts, 0))
+            SET right, parse_int(element_at(parts, 1))
+            PRINT 0, to_string(left + right)
+            """;
+        List<string> diagnostics = [];
+        Script script = ScriptTestHelpers.CreateLinearScript(
+            code,
+            "2,40",
+            runtimeError: (_, _, message) => diagnostics.Add(message));
+        Assert.IsTrue(script.CompileNodes());
+
+        for (int i = 0; i < 8; i++)
+        {
+            script.Run();
+            Assert.AreEqual($"42{Environment.NewLine}", script.GetOutput(), $"failed on iteration {i}");
+            script.Reset();
+            Assert.AreEqual(string.Empty, script.GetOutput(), $"reset failed on iteration {i}");
+        }
+
+        Assert.AreEqual(0, diagnostics.Count);
+    }
 }
