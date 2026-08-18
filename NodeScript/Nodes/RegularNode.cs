@@ -82,12 +82,12 @@ internal sealed class RegularNode : Node
             ushort idx;
             NativeDelegate func;
             Result result;
-            PlannedInstruction instruction = plan[instructionIndex++];
-            nextInstruction = instruction.Offset + instruction.Width;
+            ref readonly PlannedInstruction instruction = ref plan[instructionIndex++];
+            nextInstruction = instruction.Offset + instruction.Size;
             OpCode nextOp = instruction.OpCode;
             switch (nextOp)
             {
-                case CONSTANT: PushStack(instruction.Constant); break;
+                case CONSTANT: PushStack(plan.GetConstant(instruction.ConstantIndex)); break;
                 case TRUE: PushStack(Value.FromBool(true)); break;
                 case FALSE: PushStack(Value.FromBool(false)); break;
                 case POP: PopStack(); break;
@@ -296,8 +296,8 @@ internal sealed class RegularNode : Node
                     return;
                 case CALL_TYPE_KNOWN:
                 case CALL:
-                    func = instruction.Function!;
-                    num1 = instruction.Operand;
+                    func = plan.GetFunction(instruction.ConstantIndex);
+                    num1 = instruction.ArgumentCount;
                     result = CallFunc(func, num1);
                     if (!result.Success())
                         Err(result.message!);
