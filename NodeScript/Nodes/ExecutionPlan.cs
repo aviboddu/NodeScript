@@ -32,7 +32,9 @@ internal sealed class ExecutionPlan
     public static bool TryCreate(Compiler.CompiledData data, out ExecutionPlan? plan, out string? error)
     {
         byte[] code = data.Code;
-        int[] instructionAtOffset = ArrayPool<int>.Shared.Rent(Math.Max(code.Length, 1));
+        int capacity = Math.Max(code.Length, 1);
+        int[] instructionAtOffset = ArrayPool<int>.Shared.Rent(capacity);
+        PlannedInstruction[] decoded = ArrayPool<PlannedInstruction>.Shared.Rent(capacity);
         try
         {
             Array.Fill(instructionAtOffset, -1, 0, code.Length);
@@ -62,39 +64,28 @@ internal sealed class ExecutionPlan
                     return false;
                 }
 
-                instructionAtOffset[offset] = instructionCount++;
-                offset += width + 1;
-            }
-
-            PlannedInstruction[] instructions = new PlannedInstruction[instructionCount];
-            offset = 0;
-            for (int i = 0; i < instructions.Length; i++)
-            {
-                OpCode opCode = (OpCode)code[offset];
-                int width = OperandWidth(opCode);
-                int operand = width switch
-                {
-                    0 => 0,
-                    1 => code[offset + 1],
-                    _ => code[offset + 1] | code[offset + 2] << 8,
-                };
                 if (opCode == CONSTANT)
                     operand |= (int)Value.FromObject(data.Constants[operand]).Kind << 8;
 
-                int target = -1;
-                if (opCode is JUMP or JUMP_IF_FALSE)
-                {
-                    int targetOffset = offset + width + 1 + operand;
-                    if ((uint)targetOffset >= (uint)code.Length || instructionAtOffset[targetOffset] < 0)
-                    {
-                        plan = null;
-                        error = $"Invalid branch target at byte {offset}";
-                        return false;
-                    }
-                    target = instructionAtOffset[targetOffset];
-                }
-                instructions[i] = new(opCode, (byte)(width + 1), operand, target, offset);
+                instructionAtOffset[offset] = instructionCount;
+                decoded[instructionCount++] = new(opCode, (byte)(width + 1), operand, -1, offset);
                 offset += width + 1;
+            }
+
+            PlannedInstruction[] instructions = decoded[..instructionCount];
+            for (int i = 0; i < instructions.Length; i++)
+            {
+                PlannedInstruction instruction = instructions[i];
+                if (instruction.OpCode is not (JUMP or JUMP_IF_FALSE)) continue;
+
+                int targetOffset = instruction.Offset + instruction.Size + instruction.Operand;
+                if ((uint)targetOffset >= (uint)code.Length || instructionAtOffset[targetOffset] < 0)
+                {
+                    plan = null;
+                    error = $"Invalid branch target at byte {instruction.Offset}";
+                    return false;
+                }
+                instructions[i] = instruction with { Target = instructionAtOffset[targetOffset] };
             }
 
             if (!ValidateControlFlow(instructions, out int maximumStackDepth, out error))
@@ -103,13 +94,17 @@ internal sealed class ExecutionPlan
                 return false;
             }
 
-            Value[] constants = Array.ConvertAll(data.Constants, Value.FromObject);
+            Value[] constants = new Value[data.Constants.Length];
+            for (int i = 0; i < constants.Length; i++)
+                constants[i] = Value.FromObject(data.Constants[i]);
+
             plan = new(instructions, constants, maximumStackDepth);
             error = null;
             return true;
         }
         finally
         {
+            ArrayPool<PlannedInstruction>.Shared.Return(decoded);
             ArrayPool<int>.Shared.Return(instructionAtOffset);
         }
     }
@@ -195,13 +190,6 @@ internal sealed class ExecutionPlan
                 }
 
                 if (!reachable) continue;
-
-                (int required, int delta) = StackEffect(instruction);
-                if (height < required)
-                {
-                    error = $"Stack underflow at byte {instruction.Offset}";
-                    return false;
-                }
 
                 if (!ApplyTypes(instruction, stack, ref height, out error))
                     return false;
@@ -296,6 +284,12 @@ internal sealed class ExecutionPlan
 
     private static bool TryPop(ValueKind?[] stack, ref int height, ValueKind? expected, PlannedInstruction instruction, out string? error)
     {
+        if (height == 0)
+        {
+            error = $"Stack underflow at byte {instruction.Offset}";
+            return false;
+        }
+
         ValueKind? actual = stack[--height];
         if (expected is null || actual is null || actual == expected)
         {
@@ -383,17 +377,4 @@ internal sealed class ExecutionPlan
         }
         return true;
     }
-
-    private static (int Required, int Delta) StackEffect(PlannedInstruction instruction) => instruction.OpCode switch
-    {
-        CONSTANT or TRUE or FALSE or GET => (0, 1),
-        POP or SET or JUMP_IF_FALSE => (1, -1),
-        EQUAL or NOT_EQUAL or GREATER or GREATERI or GREATER_EQUAL or GREATER_EQUALI or LESS or LESSI or LESS_EQUAL
-            or LESS_EQUALI or ADD or ADDI or ADDS or ADDA or SUBTRACT or SUBTRACTI or MULTIPLY or MULTIPLYI or DIVIDE
-            or DIVIDEI or AND or ANDB or OR or ORB => (2, -1),
-        NEGATE or NEGATEI or NOT or NOTB => (1, 0),
-        PRINT or PRINTIS => (2, -2),
-        CALL or CALL_TYPE_KNOWN => (instruction.ArgumentCount, 1 - instruction.ArgumentCount),
-        _ => (0, 0),
-    };
 }
