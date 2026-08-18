@@ -33,4 +33,28 @@ public class RuntimeDiagnosticTests
         script.Run();
         Assert.AreEqual(2, diagnostics.Count);
     }
+
+    [TestMethod]
+    public void RuntimeErrorDoesNotLeakBranchInitializationIntoTheNextInput()
+    {
+        List<(int Node, int Line, string Message)> diagnostics = [];
+        Script script = ScriptTestHelpers.CreateLinearScript(
+            """
+            IF input == "first"
+            SET divisor, 0
+            ENDIF
+            SET result, 1 / divisor
+            PRINT 0, to_string(result)
+            """,
+            "first\nsecond",
+            runtimeError: (node, line, message) => diagnostics.Add((node, line, message)));
+
+        Assert.IsTrue(script.CompileNodes());
+        script.Run();
+
+        Assert.AreEqual(2, diagnostics.Count);
+        Assert.IsTrue(diagnostics[0].Message.Contains("divide by 0", StringComparison.OrdinalIgnoreCase));
+        Assert.IsTrue(diagnostics[1].Message.Contains("not yet initialized", StringComparison.OrdinalIgnoreCase));
+        Assert.AreEqual(string.Empty, script.GetOutput());
+    }
 }
