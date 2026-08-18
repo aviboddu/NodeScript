@@ -35,7 +35,14 @@ internal static class NodeFactory
         Compiler.CompiledData data = compiler.Compile();
         if (hasError) return null;
 
-        RegularNode regularNode = new(data, runtimeError, outputs);
-        return regularNode;
+        try
+        {
+            return new(data, runtimeError, outputs);
+        }
+        catch (ArgumentException exception)
+        {
+            compileError(0, exception.Message);
+            return null;
+        }
     }
 }

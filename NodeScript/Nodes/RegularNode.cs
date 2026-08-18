@@ -13,9 +13,7 @@ internal sealed class RegularNode : Node
     public Node[]? outputs;
     private readonly InternalErrorHandler runtimeError;
 
-    private readonly byte[] code;
-    private ref byte codePtr => ref MemoryMarshal.GetArrayDataReference(code);
-    private readonly object[] constants;
+    private readonly ExecutionPlan plan;
     private readonly Value[] stack;
     private ref Value stackPtr => ref MemoryMarshal.GetArrayDataReference(stack);
     private readonly Value[] variables;
@@ -23,15 +21,17 @@ internal sealed class RegularNode : Node
     private readonly int[] lines;
 
     private int nextInstruction = 0;
+    private int instructionIndex = 0;
     private bool panic = false;
     private int stackTop = 0;
 
     public RegularNode(Compiler.CompiledData compiledData, InternalErrorHandler runtimeError, Node[]? outputs = null)
     {
-        code = compiledData.Code;
-        constants = compiledData.Constants;
+        if (!ExecutionPlan.TryCreate(compiledData, out ExecutionPlan? executionPlan, out string? error))
+            throw new ArgumentException(error, nameof(compiledData));
+        plan = executionPlan!;
         lines = compiledData.Lines;
-        stack = new Value[compiledData.MaxStackSize];
+        stack = new Value[plan.MaximumStackDepth];
         variables = new Value[compiledData.NumVariables];
         initVar = new(compiledData.NumVariables);
         this.outputs = outputs;
@@ -64,6 +64,7 @@ internal sealed class RegularNode : Node
             ClearFrameState();
             variables[INPUT_VARIABLE_IDX] = Value.FromString(input);
             nextInstruction = 0;
+            instructionIndex = 0;
             State = NodeState.RUNNING;
             return true;
         }
@@ -78,18 +79,20 @@ internal sealed class RegularNode : Node
             Value v1, v2;
             int num1;
             bool b;
-            ushort idx, jump_val;
+            ushort idx;
             NativeDelegate func;
             Result result;
-            OpCode nextOp = (OpCode)NextByte();
+            PlannedInstruction instruction = plan[instructionIndex++];
+            nextInstruction = instruction.Offset + instruction.Width;
+            OpCode nextOp = instruction.OpCode;
             switch (nextOp)
             {
-                case CONSTANT: PushStack(Value.FromObject(constants[NextByte()])); break;
+                case CONSTANT: PushStack(instruction.Constant); break;
                 case TRUE: PushStack(Value.FromBool(true)); break;
                 case FALSE: PushStack(Value.FromBool(false)); break;
                 case POP: PopStack(); break;
                 case GET:
-                    idx = NextShort();
+                    idx = (ushort)instruction.Operand;
                     if (initVar[idx])
                         PushStack(variables[idx]);
                     else
@@ -97,7 +100,7 @@ internal sealed class RegularNode : Node
                     break;
                 case SET:
                     v1 = PopStack();
-                    idx = NextShort();
+                    idx = (ushort)instruction.Operand;
                     variables[idx] = v1;
                     initVar[idx] = true;
                     return;
@@ -240,7 +243,8 @@ internal sealed class RegularNode : Node
                         {
                             PushStack(v1);
                             PushStack(v2);
-                            nextInstruction--;
+                            instructionIndex--;
+                            nextInstruction = instruction.Offset;
                             State = NodeState.BLOCKED;
                         }
                         else
@@ -261,7 +265,8 @@ internal sealed class RegularNode : Node
                     {
                         PushStack(v1);
                         PushStack(v2);
-                        nextInstruction--;
+                        instructionIndex--;
+                        nextInstruction = instruction.Offset;
                         State = NodeState.BLOCKED;
                     }
                     else
@@ -270,8 +275,8 @@ internal sealed class RegularNode : Node
                     }
                     return;
                 case JUMP:
-                    jump_val = NextShort();
-                    nextInstruction += jump_val;
+                    instructionIndex = instruction.Target;
+                    nextInstruction = plan[instructionIndex].Offset;
                     return;
                 case JUMP_IF_FALSE:
                     v1 = PopStack();
@@ -283,14 +288,16 @@ internal sealed class RegularNode : Node
                         ValueKind.StringArray => v1.AsStringArray().Length != 0,
                         _ => false,
                     };
-                    jump_val = NextShort();
                     if (!b)
-                        nextInstruction += jump_val;
+                    {
+                        instructionIndex = instruction.Target;
+                        nextInstruction = plan[instructionIndex].Offset;
+                    }
                     return;
                 case CALL_TYPE_KNOWN:
                 case CALL:
-                    func = (NativeDelegate)constants[NextByte()];
-                    num1 = NextByte();
+                    func = instruction.Function!;
+                    num1 = instruction.Operand;
                     result = CallFunc(func, num1);
                     if (!result.Success())
                         Err(result.message!);
@@ -311,19 +318,12 @@ internal sealed class RegularNode : Node
     {
         State = NodeState.IDLE;
         nextInstruction = 0;
+        instructionIndex = 0;
         initVar.SetAll(false);
         panic = false;
         ClearAllVariableReferences();
         ClearStackReferences();
         InitGlobals();
-    }
-
-    private byte NextByte() => Unsafe.Add(ref codePtr, nextInstruction++);
-    private ushort NextShort()
-    {
-        ushort val = MemoryMarshal.Read<ushort>(MemoryMarshal.CreateReadOnlySpan(ref Unsafe.Add(ref codePtr, nextInstruction), 2));
-        nextInstruction += 2;
-        return val;
     }
 
     private void PushStack(Value val)
