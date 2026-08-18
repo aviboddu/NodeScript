@@ -237,8 +237,14 @@ internal static class Optimizer
 
         public Expr VisitBinaryExpr(Binary expr)
         {
+            Expr originalRight = expr.Right;
             expr.Left = expr.Left.Accept(this);
             expr.Right = expr.Right.Accept(this);
+            if (expr.Op.type == SLASH && originalRight is not Literal && expr.Right is Literal { Value: 0 })
+            {
+                expr.Right = originalRight;
+                return expr;
+            }
             if (expr.Left is not Literal l || expr.Right is not Literal r)
                 return expr;
 
