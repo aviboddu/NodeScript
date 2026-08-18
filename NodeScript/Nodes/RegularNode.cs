@@ -60,6 +60,12 @@ internal sealed class RegularNode : Node
     {
         if (State == NodeState.IDLE)
         {
+            panic = false;
+            initVar.SetAll(false);
+            initVar[INPUT_VARIABLE_IDX] = true;
+            initVar[MEM_VARIABLE_IDX] = true;
+            ClearDeadVariableReferences();
+            ClearStackReferences();
             variables[INPUT_VARIABLE_IDX] = Value.FromString(input);
             nextInstruction = 0;
             State = NodeState.RUNNING;
@@ -119,15 +125,42 @@ internal sealed class RegularNode : Node
                     BinaryArithmetic(nextOp);
                     break;
                 case GREATERI:
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(Value.FromBool(v1.AsInt() > v2.AsInt()));
+                    break;
                 case GREATER_EQUALI:
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(Value.FromBool(v1.AsInt() >= v2.AsInt()));
+                    break;
                 case LESSI:
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(Value.FromBool(v1.AsInt() < v2.AsInt()));
+                    break;
                 case LESS_EQUALI:
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(Value.FromBool(v1.AsInt() <= v2.AsInt()));
+                    break;
                 case SUBTRACTI:
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(Value.FromInt(v1.AsInt() - v2.AsInt()));
+                    break;
                 case MULTIPLYI:
+                    v2 = PopStack();
+                    v1 = PopStack();
+                    PushStack(Value.FromInt(v1.AsInt() * v2.AsInt()));
+                    break;
                 case DIVIDEI:
                     v2 = PopStack();
                     v1 = PopStack();
-                    BinaryArithmeticUnchecked(nextOp, v1.AsInt(), v2.AsInt());
+                    if (v2.AsInt() == 0)
+                        Err("Cannot divide by 0");
+                    else
+                        PushStack(Value.FromInt(v1.AsInt() / v2.AsInt()));
                     break;
                 case ADD:
                     v2 = PopStack();
@@ -322,31 +355,19 @@ internal sealed class RegularNode : Node
         if (!ValidateType<int>(val1, val2))
             return;
 
-        BinaryArithmeticUnchecked(op, val1.AsInt(), val2.AsInt());
-    }
-
-    private void BinaryArithmeticUnchecked(OpCode op, int num1, int num2)
-    {
         switch (op)
         {
-            case GREATER:
-            case GREATERI: PushStack(Value.FromBool(num1 > num2)); break;
-            case GREATER_EQUAL:
-            case GREATER_EQUALI: PushStack(Value.FromBool(num1 >= num2)); break;
-            case LESS:
-            case LESSI: PushStack(Value.FromBool(num1 < num2)); break;
-            case LESS_EQUAL:
-            case LESS_EQUALI: PushStack(Value.FromBool(num1 <= num2)); break;
-            case SUBTRACT:
-            case SUBTRACTI: PushStack(Value.FromInt(num1 - num2)); break;
-            case MULTIPLY:
-            case MULTIPLYI: PushStack(Value.FromInt(num1 * num2)); break;
+            case GREATER: PushStack(Value.FromBool(val1.AsInt() > val2.AsInt())); break;
+            case GREATER_EQUAL: PushStack(Value.FromBool(val1.AsInt() >= val2.AsInt())); break;
+            case LESS: PushStack(Value.FromBool(val1.AsInt() < val2.AsInt())); break;
+            case LESS_EQUAL: PushStack(Value.FromBool(val1.AsInt() <= val2.AsInt())); break;
+            case SUBTRACT: PushStack(Value.FromInt(val1.AsInt() - val2.AsInt())); break;
+            case MULTIPLY: PushStack(Value.FromInt(val1.AsInt() * val2.AsInt())); break;
             case DIVIDE:
-            case DIVIDEI:
-                if (num2 == 0)
+                if (val2.AsInt() == 0)
                     Err("Cannot divide by 0");
                 else
-                    PushStack(Value.FromInt(num1 / num2));
+                    PushStack(Value.FromInt(val1.AsInt() / val2.AsInt()));
                 break;
         }
     }
@@ -354,7 +375,13 @@ internal sealed class RegularNode : Node
     private Result CallFunc(NativeDelegate func, int numParams)
     {
         stackTop -= numParams;
-        return func(stack.AsSpan(stackTop, numParams));
+        Result result = func(stack.AsSpan(stackTop, numParams));
+        for (int i = stackTop; i < stackTop + numParams; i++)
+        {
+            if (stack[i].IsReference)
+                stack[i] = default;
+        }
+        return result;
     }
 
     public override Node[] OutputNodes()
