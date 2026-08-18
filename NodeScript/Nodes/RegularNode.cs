@@ -60,6 +60,7 @@ internal sealed class RegularNode : Node
     {
         if (State == NodeState.IDLE)
         {
+            panic = false;
             variables[INPUT_VARIABLE_IDX] = Value.FromString(input);
             nextInstruction = 0;
             State = NodeState.RUNNING;
@@ -270,11 +271,7 @@ internal sealed class RegularNode : Node
                     break;
                 case RETURN:
                     State = NodeState.IDLE;
-                    initVar.SetAll(false);
-                    initVar[INPUT_VARIABLE_IDX] = true;
-                    initVar[MEM_VARIABLE_IDX] = true;
-                    ClearDeadVariableReferences();
-                    ClearStackReferences();
+                    ClearFrameState();
                     return;
                 case ENDIF:
                 case NOP: return;
@@ -406,10 +403,20 @@ internal sealed class RegularNode : Node
         }
     }
 
+    private void ClearFrameState()
+    {
+        initVar.SetAll(false);
+        initVar[INPUT_VARIABLE_IDX] = true;
+        initVar[MEM_VARIABLE_IDX] = true;
+        ClearDeadVariableReferences();
+        ClearStackReferences();
+    }
+
     private void Err(string message)
     {
         State = NodeState.IDLE;
         panic = true;
+        ClearFrameState();
         runtimeError.Invoke(GetLine(nextInstruction - 1), message);
     }
 
