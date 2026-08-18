@@ -45,4 +45,25 @@ public class ExecutionPlanTests
         Assert.IsFalse(ExecutionPlan.TryCreate(data, out _, out string? error));
         StringAssert.Contains(error, "Incompatible stack heights");
     }
+
+    [TestMethod]
+    public void AcceptsMergedPathsWithMatchingStackState()
+    {
+        Compiler.CompiledData data = new(
+            [
+                (byte)OpCode.TRUE,
+                (byte)OpCode.JUMP_IF_FALSE, 4, 0,
+                (byte)OpCode.TRUE,
+                (byte)OpCode.JUMP, 1, 0,
+                (byte)OpCode.FALSE,
+                (byte)OpCode.POP,
+                (byte)OpCode.RETURN,
+            ],
+            [],
+            [0],
+            2,
+            1);
+
+        Assert.IsTrue(ExecutionPlan.TryCreate(data, out _, out string? error), error);
+    }
 }
