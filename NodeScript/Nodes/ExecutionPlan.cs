@@ -32,12 +32,13 @@ internal sealed class ExecutionPlan
     public static bool TryCreate(Compiler.CompiledData data, out ExecutionPlan? plan, out string? error)
     {
         byte[] code = data.Code;
-        int capacity = Math.Max(code.Length, 1);
-        int[] instructionAtOffset = ArrayPool<int>.Shared.Rent(capacity);
-        PlannedInstruction[] decoded = ArrayPool<PlannedInstruction>.Shared.Rent(capacity);
+        Value[] constants = new Value[data.Constants.Length];
+        for (int i = 0; i < constants.Length; i++)
+            constants[i] = Value.FromObject(data.Constants[i]);
+
+        PlannedInstruction[] decoded = ArrayPool<PlannedInstruction>.Shared.Rent(Math.Max(code.Length, 1));
         try
         {
-            Array.Fill(instructionAtOffset, -1, 0, code.Length);
             int instructionCount = 0;
             int offset = 0;
             while (offset < code.Length)
@@ -57,17 +58,25 @@ internal sealed class ExecutionPlan
                     1 => code[offset + 1],
                     _ => code[offset + 1] | code[offset + 2] << 8,
                 };
-                int constantIndex = opCode is CALL or CALL_TYPE_KNOWN ? code[offset + 1] : operand;
-                if (!ValidateOperand(opCode, constantIndex, data, out error))
+
+                switch (opCode)
                 {
-                    plan = null;
-                    return false;
+                    case CONSTANT:
+                        if (operand >= constants.Length) return InvalidOperand(opCode, out plan, out error);
+                        operand |= (int)constants[operand].Kind << 8;
+                        break;
+                    case GET:
+                    case SET:
+                        if (operand >= data.NumVariables) return InvalidOperand(opCode, out plan, out error);
+                        break;
+                    case CALL:
+                    case CALL_TYPE_KNOWN:
+                        int constantIndex = operand & byte.MaxValue;
+                        if (constantIndex >= constants.Length || constants[constantIndex].AsObject() is not NativeDelegate)
+                            return InvalidOperand(opCode, out plan, out error);
+                        break;
                 }
 
-                if (opCode == CONSTANT)
-                    operand |= (int)Value.FromObject(data.Constants[operand]).Kind << 8;
-
-                instructionAtOffset[offset] = instructionCount;
                 decoded[instructionCount++] = new(opCode, (byte)(width + 1), operand, -1, offset);
                 offset += width + 1;
             }
@@ -78,14 +87,15 @@ internal sealed class ExecutionPlan
                 PlannedInstruction instruction = instructions[i];
                 if (instruction.OpCode is not (JUMP or JUMP_IF_FALSE)) continue;
 
-                int targetOffset = instruction.Offset + instruction.Size + instruction.Operand;
-                if ((uint)targetOffset >= (uint)code.Length || instructionAtOffset[targetOffset] < 0)
+                // Branch operands are unsigned, so every target lies after the branch itself.
+                int target = IndexOfOffset(instructions, i + 1, instruction.Offset + instruction.Size + instruction.Operand);
+                if (target < 0)
                 {
                     plan = null;
                     error = $"Invalid branch target at byte {instruction.Offset}";
                     return false;
                 }
-                instructions[i] = instruction with { Target = instructionAtOffset[targetOffset] };
+                instructions[i] = instruction with { Target = target };
             }
 
             if (!ValidateControlFlow(instructions, out int maximumStackDepth, out error))
@@ -94,10 +104,6 @@ internal sealed class ExecutionPlan
                 return false;
             }
 
-            Value[] constants = new Value[data.Constants.Length];
-            for (int i = 0; i < constants.Length; i++)
-                constants[i] = Value.FromObject(data.Constants[i]);
-
             plan = new(instructions, constants, maximumStackDepth);
             error = null;
             return true;
@@ -105,8 +111,33 @@ internal sealed class ExecutionPlan
         finally
         {
             ArrayPool<PlannedInstruction>.Shared.Return(decoded);
-            ArrayPool<int>.Shared.Return(instructionAtOffset);
         }
+    }
+
+    private static bool InvalidOperand(OpCode opCode, out ExecutionPlan? plan, out string? error)
+    {
+        plan = null;
+        error = $"Invalid operand for {opCode}";
+        return false;
+    }
+
+    /// <summary>
+    /// Finds the instruction starting at <paramref name="offset"/>, searching the ascending offsets
+    /// of <paramref name="instructions"/> from <paramref name="first"/> onwards.
+    /// </summary>
+    private static int IndexOfOffset(PlannedInstruction[] instructions, int first, int offset)
+    {
+        int low = first;
+        int high = instructions.Length - 1;
+        while (low <= high)
+        {
+            int middle = low + ((high - low) >> 1);
+            int candidate = instructions[middle].Offset;
+            if (candidate == offset) return middle;
+            if (candidate < offset) low = middle + 1;
+            else high = middle - 1;
+        }
+        return -1;
     }
 
     private static int OperandWidth(OpCode opCode) => opCode switch
@@ -120,19 +151,6 @@ internal sealed class ExecutionPlan
             or NOTB or PRINT or PRINTIS or RETURN or ENDIF or NOP => 0,
         _ => -1,
     };
-
-    private static bool ValidateOperand(OpCode opCode, int operand, Compiler.CompiledData data, out string? error)
-    {
-        bool valid = opCode switch
-        {
-            CONSTANT => operand < data.Constants.Length,
-            GET or SET => operand < data.NumVariables,
-            CALL or CALL_TYPE_KNOWN => operand < data.Constants.Length && data.Constants[operand] is NativeDelegate,
-            _ => true,
-        };
-        error = valid ? null : $"Invalid operand for {opCode}";
-        return valid;
-    }
 
     private static bool ValidateControlFlow(PlannedInstruction[] instructions, out int maximumStackDepth, out string? error)
     {
