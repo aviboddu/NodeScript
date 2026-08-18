@@ -1,5 +1,7 @@
 namespace NodeScript;
 
+using System.Buffers;
+
 using static OpCode;
 
 internal readonly record struct PlannedInstruction(OpCode OpCode, byte Size, int Operand, int Target, int Offset)
@@ -29,83 +31,87 @@ internal sealed class ExecutionPlan
 
     public static bool TryCreate(Compiler.CompiledData data, out ExecutionPlan? plan, out string? error)
     {
-        int[] instructionAtOffset = new int[data.Code.Length];
-        Array.Fill(instructionAtOffset, -1);
-        int instructionCount = 0;
-        int offset = 0;
-        while (offset < data.Code.Length)
+        byte[] code = data.Code;
+        int[] instructionAtOffset = ArrayPool<int>.Shared.Rent(Math.Max(code.Length, 1));
+        try
         {
-            OpCode opCode = (OpCode)data.Code[offset];
-            int width = OperandWidth(opCode);
-            if (width < 0 || offset + width >= data.Code.Length)
+            Array.Fill(instructionAtOffset, -1, 0, code.Length);
+            int instructionCount = 0;
+            int offset = 0;
+            while (offset < code.Length)
             {
-                plan = null;
-                error = $"Invalid {opCode} instruction at byte {offset}";
-                return false;
-            }
-
-            int operand = width switch
-            {
-                0 => 0,
-                1 => data.Code[offset + 1],
-                _ => data.Code[offset + 1] | data.Code[offset + 2] << 8,
-            };
-            int constantIndex = opCode is CALL or CALL_TYPE_KNOWN ? data.Code[offset + 1] : operand;
-            if (opCode is CALL or CALL_TYPE_KNOWN)
-                operand = data.Code[offset + 2];
-            if (!ValidateOperand(opCode, constantIndex, data, out error))
-            {
-                plan = null;
-                return false;
-            }
-
-            instructionAtOffset[offset] = instructionCount++;
-            offset += width + 1;
-        }
-
-        PlannedInstruction[] instructions = new PlannedInstruction[instructionCount];
-        offset = 0;
-        for (int i = 0; i < instructions.Length; i++)
-        {
-            OpCode opCode = (OpCode)data.Code[offset];
-            int width = OperandWidth(opCode);
-            int operand = width switch
-            {
-                0 => 0,
-                1 => data.Code[offset + 1],
-                _ => data.Code[offset + 1] | data.Code[offset + 2] << 8,
-            };
-            if (opCode is CALL or CALL_TYPE_KNOWN)
-                operand = data.Code[offset + 1] | data.Code[offset + 2] << 8;
-            else if (opCode == CONSTANT)
-                operand |= (int)Value.FromObject(data.Constants[operand]).Kind << 8;
-
-            int target = -1;
-            if (opCode is JUMP or JUMP_IF_FALSE)
-            {
-                int targetOffset = offset + width + 1 + operand;
-                if ((uint)targetOffset >= (uint)instructionAtOffset.Length || instructionAtOffset[targetOffset] < 0)
+                OpCode opCode = (OpCode)code[offset];
+                int width = OperandWidth(opCode);
+                if (width < 0 || offset + width >= code.Length)
                 {
                     plan = null;
-                    error = $"Invalid branch target at byte {offset}";
+                    error = $"Invalid {opCode} instruction at byte {offset}";
                     return false;
                 }
-                target = instructionAtOffset[targetOffset];
+
+                int operand = width switch
+                {
+                    0 => 0,
+                    1 => code[offset + 1],
+                    _ => code[offset + 1] | code[offset + 2] << 8,
+                };
+                int constantIndex = opCode is CALL or CALL_TYPE_KNOWN ? code[offset + 1] : operand;
+                if (!ValidateOperand(opCode, constantIndex, data, out error))
+                {
+                    plan = null;
+                    return false;
+                }
+
+                instructionAtOffset[offset] = instructionCount++;
+                offset += width + 1;
             }
-            instructions[i] = new(opCode, (byte)(width + 1), operand, target, offset);
-            offset += width + 1;
-        }
 
-        if (!ValidateControlFlow(instructions, out int maximumStackDepth, out error))
+            PlannedInstruction[] instructions = new PlannedInstruction[instructionCount];
+            offset = 0;
+            for (int i = 0; i < instructions.Length; i++)
+            {
+                OpCode opCode = (OpCode)code[offset];
+                int width = OperandWidth(opCode);
+                int operand = width switch
+                {
+                    0 => 0,
+                    1 => code[offset + 1],
+                    _ => code[offset + 1] | code[offset + 2] << 8,
+                };
+                if (opCode == CONSTANT)
+                    operand |= (int)Value.FromObject(data.Constants[operand]).Kind << 8;
+
+                int target = -1;
+                if (opCode is JUMP or JUMP_IF_FALSE)
+                {
+                    int targetOffset = offset + width + 1 + operand;
+                    if ((uint)targetOffset >= (uint)code.Length || instructionAtOffset[targetOffset] < 0)
+                    {
+                        plan = null;
+                        error = $"Invalid branch target at byte {offset}";
+                        return false;
+                    }
+                    target = instructionAtOffset[targetOffset];
+                }
+                instructions[i] = new(opCode, (byte)(width + 1), operand, target, offset);
+                offset += width + 1;
+            }
+
+            if (!ValidateControlFlow(instructions, out int maximumStackDepth, out error))
+            {
+                plan = null;
+                return false;
+            }
+
+            Value[] constants = Array.ConvertAll(data.Constants, Value.FromObject);
+            plan = new(instructions, constants, maximumStackDepth);
+            error = null;
+            return true;
+        }
+        finally
         {
-            plan = null;
-            return false;
+            ArrayPool<int>.Shared.Return(instructionAtOffset);
         }
-
-        Value[] constants = Array.ConvertAll(data.Constants, Value.FromObject);
-        plan = new(instructions, constants, maximumStackDepth);
-        error = null;
-        return true;
     }
 
     private static int OperandWidth(OpCode opCode) => opCode switch
@@ -135,175 +141,244 @@ internal sealed class ExecutionPlan
 
     private static bool ValidateControlFlow(PlannedInstruction[] instructions, out int maximumStackDepth, out string? error)
     {
+        maximumStackDepth = 0;
         if (instructions.Length == 0)
         {
-            maximumStackDepth = 0;
             error = "Execution plan is empty";
             return false;
         }
 
-        int[] predecessorCounts = new int[instructions.Length];
+        // The language has no loops, so every branch must jump forward. Rejecting backward branches
+        // keeps the control-flow graph acyclic, which lets the stack contract be validated in a
+        // single forward pass instead of a recursive traversal.
         for (int i = 0; i < instructions.Length; i++)
         {
             PlannedInstruction instruction = instructions[i];
-            if (instruction.OpCode is JUMP or JUMP_IF_FALSE)
-                predecessorCounts[instruction.Target]++;
-            if (instruction.OpCode is not (RETURN or JUMP) && i + 1 < instructions.Length)
-                predecessorCounts[i + 1]++;
-        }
-
-        int[] heights = new int[instructions.Length];
-        Array.Fill(heights, -1);
-        ValueKind?[][] mergeTypes = new ValueKind?[instructions.Length][];
-        byte[] states = new byte[instructions.Length];
-        int maxDepth = 0;
-        string? validationError = null;
-
-        bool Visit(int index, int height, List<ValueKind?> stack)
-        {
-            if (states[index] == 1)
+            if (instruction.OpCode is JUMP or JUMP_IF_FALSE && instruction.Target <= i)
             {
-                validationError = $"Control-flow cycle at byte {instructions[index].Offset}";
+                error = $"Control-flow cycle at byte {instruction.Offset}";
                 return false;
             }
-            if (heights[index] >= 0)
+        }
+
+        int count = instructions.Length;
+        int[] mergeHeights = ArrayPool<int>.Shared.Rent(count);
+        ValueKind?[]?[] mergeTypes = ArrayPool<ValueKind?[]?>.Shared.Rent(count);
+        ValueKind?[] stack = ArrayPool<ValueKind?>.Shared.Rent(count + 1);
+        try
+        {
+            Array.Clear(mergeTypes, 0, count);
+            int height = 0;
+            int maxDepth = 0;
+            bool reachable = true;
+
+            for (int i = 0; i < count; i++)
             {
-                int existing = heights[index];
-                if (existing != height)
-                    return Fail($"Incompatible stack heights at byte {instructions[index].Offset}");
-                ValueKind?[] existingTypes = mergeTypes[index];
-                for (int i = 0; i < existingTypes.Length; i++)
+                PlannedInstruction instruction = instructions[i];
+                ValueKind?[]? incoming = mergeTypes[i];
+                if (incoming is not null)
                 {
-                    if (existingTypes[i] is not null && stack[i] is not null && existingTypes[i] != stack[i])
-                        return Fail($"Incompatible stack types at byte {instructions[index].Offset}");
+                    if (reachable)
+                    {
+                        if (!TryMerge(stack, height, incoming, mergeHeights[i], instruction, out error))
+                            return false;
+                    }
+                    else
+                    {
+                        height = mergeHeights[i];
+                        incoming.AsSpan(0, height).CopyTo(stack);
+                        reachable = true;
+                    }
+
+                    mergeTypes[i] = null;
+                    ArrayPool<ValueKind?>.Shared.Return(incoming);
                 }
-                return true;
+
+                if (!reachable) continue;
+
+                (int required, int delta) = StackEffect(instruction);
+                if (height < required)
+                {
+                    error = $"Stack underflow at byte {instruction.Offset}";
+                    return false;
+                }
+
+                if (!ApplyTypes(instruction, stack, ref height, out error))
+                    return false;
+                maxDepth = Math.Max(maxDepth, height);
+
+                if (instruction.OpCode is JUMP or JUMP_IF_FALSE)
+                {
+                    if (!RecordBranch(instructions, mergeTypes, mergeHeights, instruction.Target, stack, height, out error))
+                        return false;
+                }
+
+                if (instruction.OpCode is JUMP or RETURN)
+                    reachable = false;
             }
 
-            heights[index] = height;
-            if (predecessorCounts[index] > 1)
-                mergeTypes[index] = [.. stack];
-            states[index] = 1;
-            PlannedInstruction instruction = instructions[index];
-            (int required, int delta) = StackEffect(instruction);
-            if (height < required)
-                return Fail($"Stack underflow at byte {instruction.Offset}");
-
-            if (!ApplyTypes(instruction, stack, Fail))
-                return false;
-            int nextHeight = height + delta;
-            maxDepth = Math.Max(maxDepth, nextHeight);
-
-            bool valid = true;
-            if (instruction.OpCode == JUMP)
-            {
-                valid = Visit(instruction.Target, nextHeight, stack);
-            }
-            else if (instruction.OpCode == JUMP_IF_FALSE)
-            {
-                List<ValueKind?> branchStack = [.. stack];
-                valid = Visit(instruction.Target, nextHeight, branchStack);
-                if (valid && index + 1 < instructions.Length)
-                    valid = Visit(index + 1, nextHeight, stack);
-            }
-            else if (instruction.OpCode != RETURN && index + 1 < instructions.Length)
-            {
-                valid = Visit(index + 1, nextHeight, stack);
-            }
-
-            states[index] = 2;
-            return valid;
+            maximumStackDepth = maxDepth;
+            error = null;
+            return true;
         }
-
-        bool Fail(string message)
+        finally
         {
-            validationError = message;
+            for (int i = 0; i < count; i++)
+            {
+                ValueKind?[]? pending = mergeTypes[i];
+                if (pending is null) continue;
+                mergeTypes[i] = null;
+                ArrayPool<ValueKind?>.Shared.Return(pending);
+            }
+            ArrayPool<ValueKind?>.Shared.Return(stack);
+            ArrayPool<ValueKind?[]?>.Shared.Return(mergeTypes);
+            ArrayPool<int>.Shared.Return(mergeHeights);
+        }
+    }
+
+    /// <summary>
+    /// Records the stack state reaching a branch target, merging it with any state recorded by an
+    /// earlier predecessor of that target.
+    /// </summary>
+    private static bool RecordBranch(
+        PlannedInstruction[] instructions,
+        ValueKind?[]?[] mergeTypes,
+        int[] mergeHeights,
+        int target,
+        ValueKind?[] stack,
+        int height,
+        out string? error)
+    {
+        ValueKind?[]? existing = mergeTypes[target];
+        if (existing is not null)
+            return TryMerge(existing, mergeHeights[target], stack, height, instructions[target], out error);
+
+        ValueKind?[] recorded = ArrayPool<ValueKind?>.Shared.Rent(Math.Max(height, 1));
+        stack.AsSpan(0, height).CopyTo(recorded);
+        mergeTypes[target] = recorded;
+        mergeHeights[target] = height;
+        error = null;
+        return true;
+    }
+
+    /// <summary>
+    /// Merges <paramref name="other"/> into <paramref name="destination"/>, keeping only the value
+    /// kinds both paths agree on.
+    /// </summary>
+    private static bool TryMerge(
+        ValueKind?[] destination,
+        int destinationHeight,
+        ValueKind?[] other,
+        int otherHeight,
+        PlannedInstruction instruction,
+        out string? error)
+    {
+        if (destinationHeight != otherHeight)
+        {
+            error = $"Incompatible stack heights at byte {instruction.Offset}";
             return false;
         }
 
-        bool valid = Visit(0, 0, []);
-        maximumStackDepth = maxDepth;
-        error = validationError;
-        return valid;
+        for (int i = 0; i < destinationHeight; i++)
+        {
+            if (destination[i] == other[i]) continue;
+            if (destination[i] is not null && other[i] is not null)
+            {
+                error = $"Incompatible stack types at byte {instruction.Offset}";
+                return false;
+            }
+            destination[i] = null;
+        }
+
+        error = null;
+        return true;
     }
 
-    private static bool ApplyTypes(PlannedInstruction instruction, List<ValueKind?> stack, Func<string, bool> fail)
+    private static bool TryPop(ValueKind?[] stack, ref int height, ValueKind? expected, PlannedInstruction instruction, out string? error)
     {
-        bool Pop(ValueKind? expected = null)
+        ValueKind? actual = stack[--height];
+        if (expected is null || actual is null || actual == expected)
         {
-            ValueKind? actual = stack[^1];
-            stack.RemoveAt(stack.Count - 1);
-            return expected is null || actual is null || actual == expected
-                || fail($"Invalid stack type for {instruction.OpCode} at byte {instruction.Offset}");
+            error = null;
+            return true;
         }
-        bool Pop2(ValueKind? expected = null) => Pop(expected) && Pop(expected);
-        void Push(ValueKind? kind) => stack.Add(kind);
+        error = $"Invalid stack type for {instruction.OpCode} at byte {instruction.Offset}";
+        return false;
+    }
 
+    private static bool TryPop2(ValueKind?[] stack, ref int height, ValueKind? expected, PlannedInstruction instruction, out string? error)
+        => TryPop(stack, ref height, expected, instruction, out error) && TryPop(stack, ref height, expected, instruction, out error);
+
+    private static bool ApplyTypes(PlannedInstruction instruction, ValueKind?[] stack, ref int height, out string? error)
+    {
+        error = null;
         switch (instruction.OpCode)
         {
-            case CONSTANT: Push(instruction.ConstantKind); break;
+            case CONSTANT: stack[height++] = instruction.ConstantKind; break;
             case TRUE:
-            case FALSE: Push(ValueKind.Bool); break;
-            case GET: Push(null); break;
+            case FALSE: stack[height++] = ValueKind.Bool; break;
+            case GET: stack[height++] = null; break;
             case POP:
             case SET:
-            case JUMP_IF_FALSE: return Pop();
-            case PRINTIS: return Pop(ValueKind.String) && Pop(ValueKind.Int);
-            case PRINT: return Pop2();
+            case JUMP_IF_FALSE: return TryPop(stack, ref height, null, instruction, out error);
+            case PRINTIS:
+                return TryPop(stack, ref height, ValueKind.String, instruction, out error)
+                    && TryPop(stack, ref height, ValueKind.Int, instruction, out error);
+            case PRINT: return TryPop2(stack, ref height, null, instruction, out error);
             case ADDI:
             case SUBTRACTI:
             case MULTIPLYI:
-            case DIVIDEI: if (!Pop2(ValueKind.Int)) return false; Push(ValueKind.Int); break;
-            case ADDS: if (!Pop2(ValueKind.String)) return false; Push(ValueKind.String); break;
-            case ADDA: if (!Pop2(ValueKind.StringArray)) return false; Push(ValueKind.StringArray); break;
+            case DIVIDEI: if (!TryPop2(stack, ref height, ValueKind.Int, instruction, out error)) return false; stack[height++] = ValueKind.Int; break;
+            case ADDS: if (!TryPop2(stack, ref height, ValueKind.String, instruction, out error)) return false; stack[height++] = ValueKind.String; break;
+            case ADDA: if (!TryPop2(stack, ref height, ValueKind.StringArray, instruction, out error)) return false; stack[height++] = ValueKind.StringArray; break;
             case ANDB:
-            case ORB: if (!Pop2(ValueKind.Bool)) return false; Push(ValueKind.Bool); break;
+            case ORB: if (!TryPop2(stack, ref height, ValueKind.Bool, instruction, out error)) return false; stack[height++] = ValueKind.Bool; break;
             case GREATERI:
             case GREATER_EQUALI:
             case LESSI:
-            case LESS_EQUALI: if (!Pop2(ValueKind.Int)) return false; Push(ValueKind.Bool); break;
-            case NEGATEI: if (!Pop(ValueKind.Int)) return false; Push(ValueKind.Int); break;
-            case NOTB: if (!Pop(ValueKind.Bool)) return false; Push(ValueKind.Bool); break;
+            case LESS_EQUALI: if (!TryPop2(stack, ref height, ValueKind.Int, instruction, out error)) return false; stack[height++] = ValueKind.Bool; break;
+            case NEGATEI: if (!TryPop(stack, ref height, ValueKind.Int, instruction, out error)) return false; stack[height++] = ValueKind.Int; break;
+            case NOTB: if (!TryPop(stack, ref height, ValueKind.Bool, instruction, out error)) return false; stack[height++] = ValueKind.Bool; break;
             case CALL:
             case CALL_TYPE_KNOWN:
                 for (int i = 0; i < instruction.ArgumentCount; i++)
-                    if (!Pop()) return false;
-                Push(null);
+                    if (!TryPop(stack, ref height, null, instruction, out error)) return false;
+                stack[height++] = null;
                 break;
             case EQUAL:
             case NOT_EQUAL:
-                if (!Pop2()) return false;
-                Push(ValueKind.Bool);
+                if (!TryPop2(stack, ref height, null, instruction, out error)) return false;
+                stack[height++] = ValueKind.Bool;
                 break;
             case GREATER:
             case GREATER_EQUAL:
             case LESS:
             case LESS_EQUAL:
-                if (!Pop2(ValueKind.Int)) return false;
-                Push(ValueKind.Bool);
+                if (!TryPop2(stack, ref height, ValueKind.Int, instruction, out error)) return false;
+                stack[height++] = ValueKind.Bool;
                 break;
             case SUBTRACT:
             case MULTIPLY:
             case DIVIDE:
-                if (!Pop2(ValueKind.Int)) return false;
-                Push(ValueKind.Int);
+                if (!TryPop2(stack, ref height, ValueKind.Int, instruction, out error)) return false;
+                stack[height++] = ValueKind.Int;
                 break;
             case ADD:
-                if (!Pop2()) return false;
-                Push(null);
+                if (!TryPop2(stack, ref height, null, instruction, out error)) return false;
+                stack[height++] = null;
                 break;
             case AND:
             case OR:
-                if (!Pop2(ValueKind.Bool)) return false;
-                Push(ValueKind.Bool);
+                if (!TryPop2(stack, ref height, ValueKind.Bool, instruction, out error)) return false;
+                stack[height++] = ValueKind.Bool;
                 break;
             case NEGATE:
-                if (!Pop(ValueKind.Int)) return false;
-                Push(ValueKind.Int);
+                if (!TryPop(stack, ref height, ValueKind.Int, instruction, out error)) return false;
+                stack[height++] = ValueKind.Int;
                 break;
             case NOT:
-                if (!Pop(ValueKind.Bool)) return false;
-                Push(ValueKind.Bool);
+                if (!TryPop(stack, ref height, ValueKind.Bool, instruction, out error)) return false;
+                stack[height++] = ValueKind.Bool;
                 break;
         }
         return true;
