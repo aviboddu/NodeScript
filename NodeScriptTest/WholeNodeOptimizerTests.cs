@@ -61,6 +61,25 @@ public class WholeNodeOptimizerTests
     }
 
     [TestMethod]
+    public void RetainsValueNeededWhenConditionalAssignmentIsSkipped()
+    {
+        Script script = ScriptTestHelpers.CreateLinearScript(
+            """
+            SET value, "default"
+            IF length(input) > 1
+            SET value, "branch"
+            ENDIF
+            PRINT 0, value
+            """,
+            "x");
+
+        Assert.IsTrue(script.CompileNodes());
+        script.Run();
+
+        Assert.AreEqual($"default{Environment.NewLine}", script.GetOutput());
+    }
+
+    [TestMethod]
     public void DoesNotRemoveEagerBooleanOperand()
     {
         List<string> diagnostics = [];

@@ -141,12 +141,15 @@ internal static class Optimizer
     private static void EliminateDeadLiteralStores(Operation?[] operations)
     {
         bool[] conditionalLines = new bool[operations.Length];
+        HashSet<string> conditionalAssignments = new(StringComparer.Ordinal);
         int conditionalDepth = 0;
         for (int line = 0; line < operations.Length; line++)
         {
             Operation? op = operations[line];
             if (op?.operation == IF) conditionalDepth++;
             conditionalLines[line] = conditionalDepth > 0;
+            if (conditionalLines[line] && op?.operation == SET)
+                conditionalAssignments.Add(((Variable)op.expressions[0]).Name.Lexeme.ToString());
             if (op?.operation == ENDIF && conditionalDepth > 0) conditionalDepth--;
         }
 
@@ -160,7 +163,7 @@ internal static class Optimizer
             {
                 string name = ((Variable)op.expressions[0]).Name.Lexeme.ToString();
                 if (!conditionalLines[line] && name is not "input" and not "mem" &&
-                    op.expressions[1] is Literal && !live.Contains(name))
+                    op.expressions[1] is Literal && !live.Contains(name) && !conditionalAssignments.Contains(name))
                 {
                     operations[line] = Nop();
                     continue;
