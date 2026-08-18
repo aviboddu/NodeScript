@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Diagnosers;
+using BenchmarkDotNet.Exporters.Json;
 using BenchmarkDotNet.Jobs;
 
 namespace NodeScriptBenchmark;
@@ -14,7 +15,8 @@ namespace NodeScriptBenchmark;
 /// </para>
 /// Every run reports managed allocations and GC collections via <see cref="MemoryDiagnoser"/>, and
 /// BenchmarkDotNet always records the host environment (runtime, architecture, GC mode, tiered
-/// compilation and ReadyToRun settings) alongside the results.
+/// compilation and ReadyToRun settings) alongside the results. Results are also exported as JSON so
+/// that CI can derive the performance badge from them.
 /// </summary>
 public sealed class BenchmarkConfig : ManualConfig
 {
@@ -23,5 +25,6 @@ public sealed class BenchmarkConfig : ManualConfig
         AddJob(Job.ShortRun.WithId("Ci"));
         AddDiagnoser(MemoryDiagnoser.Default);
         AddColumnProvider(BenchmarkDotNet.Columns.DefaultColumnProviders.Instance);
+        AddExporter(JsonExporter.FullCompressed);
     }
 }

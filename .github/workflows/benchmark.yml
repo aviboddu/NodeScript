@@ -12,6 +12,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      # Needed to push the generated badge data to the `badges` branch on master.
+      contents: write
     steps:
     - uses: actions/checkout@v7
     - name: Setup .NET
@@ -41,3 +44,27 @@ jobs:
         retention-days: 30
         compression-level: 0
         overwrite: true
+    - name: Generate performance badge data
+      if: hashFiles('./BenchmarkDotNet.Artifacts/results/*-report-full-compressed.json') != ''
+      run: python3 ./.github/scripts/benchmark_badge.py ./BenchmarkDotNet.Artifacts/results ./badge/benchmark.json
+    - name: Publish performance badge data
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master' && hashFiles('./badge/benchmark.json') != ''
+      run: |
+        set -euo pipefail
+        cp ./badge/benchmark.json "${RUNNER_TEMP}/benchmark.json"
+        git config user.name 'github-actions[bot]'
+        git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+        if git fetch origin badges; then
+          git checkout -B badges FETCH_HEAD
+        else
+          git checkout --orphan badges
+          git rm -r --cached --quiet .
+        fi
+        cp "${RUNNER_TEMP}/benchmark.json" ./benchmark.json
+        git add benchmark.json
+        if git diff --cached --quiet; then
+          echo "Badge data unchanged."
+        else
+          git commit -m "Update benchmark badge data for ${GITHUB_SHA}"
+          git push origin badges
+        fi

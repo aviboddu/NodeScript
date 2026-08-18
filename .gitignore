@@ -7,3 +7,4 @@ NodeScriptBenchmark/obj/
 NodeScriptBenchmark/BenchmarkDotNet.Artifacts/
 BenchmarkDotNet.Artifacts/
 .idea/
+badge/

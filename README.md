@@ -1,5 +1,5 @@
 # NodeScript
-![Tests](https://github.com/aviboddu/NodeScript/actions/workflows/dotnet.yml/badge.svg?branch=master&event=push) ![Benchmark](https://github.com/aviboddu/NodeScript/actions/workflows/benchmark.yml/badge.svg?branch=master&event=push) ![NuGet Version](https://img.shields.io/nuget/v/NodeScript)
+![Tests](https://github.com/aviboddu/NodeScript/actions/workflows/dotnet.yml/badge.svg?branch=master&event=push) ![Benchmark](https://github.com/aviboddu/NodeScript/actions/workflows/benchmark.yml/badge.svg?branch=master&event=push) ![NuGet Version](https://img.shields.io/nuget/v/NodeScript) ![Benchmark Performance](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Faviboddu%2FNodeScript%2Fbadges%2Fbenchmark.json)
 
 NodeScript is a rudimentary programming language designed to function on 'nodes', intended for use in puzzle games. Find more details [here](https://github.com/aviboddu/NodeScript/wiki)
 
@@ -47,6 +47,14 @@ cycle). All benchmark inputs are deterministic and checked into `NodeScriptBench
 mean/median, throughput, allocated bytes and GC collections via `MemoryDiagnoser`, alongside the host runtime,
 architecture and GC settings that BenchmarkDotNet records automatically. A baseline run is recorded in
 [`NodeScriptBenchmark/Baseline/README.md`](NodeScriptBenchmark/Baseline/README.md).
+
+The **Benchmark Performance** badge at the top of this file shows the headline numbers of the latest
+benchmark run on `master`: the geometric mean of every benchmark's mean execution time and of the
+allocated bytes per operation. It is produced by
+[`.github/scripts/benchmark_badge.py`](.github/scripts/benchmark_badge.py), which summarizes the JSON
+reports emitted by BenchmarkDotNet, and the resulting [shields.io endpoint](https://shields.io/badges/endpoint-badge)
+payload is committed to the `badges` branch by the Benchmark workflow. Since the numbers come from a
+shared CI runner they are only meaningful as a trend, not as an absolute measurement.
 
 - CI-safe subset (fast, used by the Benchmark workflow): `dotnet run -c Release --project ./NodeScriptBenchmark`
 - Full/local run (more iterations, statistically robust): `dotnet run -c Release --project ./NodeScriptBenchmark -- --job Medium`
