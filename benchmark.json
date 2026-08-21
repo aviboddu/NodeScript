@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "label": "benchmark geomean (126 cases)",
+  "message": "40.42 us | 20.17 KB/op",
+  "color": "blue"
+}
